@@ -33,7 +33,7 @@ Browser ──(anon key)──▶ Supabase Auth          sign in, sessions, OAut
 
 - The browser only talks to Supabase for **auth**. All data goes through the API.
 - The API checks every admin call: it verifies the token with Supabase, then needs `profiles.role` to be `owner` or `admin`.
-- RLS is on for every table. The anon key can only read published events and the user's own profile, so a leaked anon key cannot read the waitlist.
+- RLS is on for every table. The anon key can only read published events and the user's own profile, so a leaked anon key cannot read the waitlist. Event capacity is enforced by a database trigger.
 
 ## Run it locally
 

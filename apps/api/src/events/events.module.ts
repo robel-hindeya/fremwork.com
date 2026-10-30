@@ -97,6 +97,7 @@ export class EventsService {
       .select('id, event_id, cancel_token')
       .single();
     if (error?.code === '23505') throw new ConflictException('This email is already registered for this event.');
+    if (error?.code === 'P0001') throw new ConflictException(error.message); // capacity trigger
     SupabaseService.check({ data, error });
     return { id: data!.id, eventId: data!.event_id, cancelToken: data!.cancel_token };
   }
