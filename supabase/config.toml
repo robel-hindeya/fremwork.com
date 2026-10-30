@@ -1,0 +1,55 @@
+# Local Supabase (`supabase start`). Only the settings Fremwork relies on are listed;
+# the CLI fills in defaults for the rest.
+project_id = "fremwork"
+
+[api]
+port = 54321
+
+[db]
+port = 54322
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+port = 54323
+
+[inbucket]
+# Local inbox for auth emails: http://127.0.0.1:54324
+port = 54324
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback", "http://localhost:3000/auth/confirm"]
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+
+[auth.email.template.invite]
+subject = "Your Fremwork invite"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Fremwork password"
+content_path = "./supabase/templates/recovery.html"
+
+# Social sign-in. Fill the secrets in supabase/.env (see README), then set enabled = true.
+[auth.external.google]
+enabled = false
+client_id = "env(SUPABASE_AUTH_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_GOOGLE_SECRET)"
+
+[auth.external.azure]
+enabled = false
+client_id = "env(SUPABASE_AUTH_AZURE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_AZURE_SECRET)"
+url = "https://login.microsoftonline.com/common/v2.0"
+
+[auth.external.apple]
+enabled = false
+client_id = "env(SUPABASE_AUTH_APPLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_APPLE_SECRET)"

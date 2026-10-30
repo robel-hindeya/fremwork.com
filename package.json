@@ -1,0 +1,16 @@
+{
+  "name": "fremwork",
+  "private": true,
+  "packageManager": "pnpm@10.12.1",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @fremwork/web --filter @fremwork/api dev",
+    "dev:web": "pnpm --filter @fremwork/web dev",
+    "dev:api": "pnpm --filter @fremwork/api dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
+    "db:types": "supabase gen types typescript --local > apps/api/src/supabase/database.types.ts"
+  }
+}

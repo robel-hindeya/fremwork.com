@@ -1,0 +1,29 @@
+/* Fremwork tokens (from the Fremwork design system). Screen styles live in /styles, scoped per page. */
+:root {
+  --void: #0a0a0a;
+  --white: #ffffff;
+  --core-grey: #8c8c8c;
+  --paper: #fafaf8;
+  --graphite: #1a1a1a;
+  --charcoal: #2b2b2b;
+  --iron: #5e5e5e;
+  --mist: #ededed;
+  --core-volt: #c6f432;
+  --signal-blue: #3d5afe;
+  --success: #1fa971;
+  --warning: #f5a524;
+  --error: #e5484d;
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--void);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* No global border-box reset: the screens were designed on browser defaults and set box-sizing where they need it. */
