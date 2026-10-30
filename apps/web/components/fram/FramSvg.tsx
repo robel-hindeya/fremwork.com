@@ -24,7 +24,7 @@ export const FRAM_MOUTHS = {
 export type FramMood = keyof typeof FRAM_MOUTHS;
 
 interface Props {
-  f: FramFace;
+  f: FramFace | Record<string, any>;
   label: string;
   className?: string;
   style?: CSSProperties;
