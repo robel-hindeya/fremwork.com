@@ -119,6 +119,10 @@ const routes: [string, RegExp, Handler][] = [
     if (b.capacity !== undefined) patch.capacity = b.capacity;
     return toEvent(must(await db().from('events').update(patch).eq('id', m[1]).select('*, event_registrations(count)').single()));
   }],
+  ['DELETE', /^\/admin\/events\/([^/]+)$/, async (m) => {
+    must(await db().from('events').delete().eq('id', m[1]));
+    return { ok: true };
+  }],
   ['GET', /^\/admin\/registrations$/, async (_m, _b, q) => registrations(q.get('eventId'), q.get('q'))],
   ['GET', /^\/admin\/registrations\/export$/, async (_m, _b, q) => {
     const [regs, evs] = await Promise.all([registrations(q.get('eventId'), q.get('q')), events()]);

@@ -195,7 +195,7 @@ export function AdminScreen() {
         }
       } catch (err) { fail(err); }
     },
-    onNewEvent: () => set({ drawer: true, ne: { type: 'WEBINAR', where: 'Online', cap: '100' }, neErr: '' }),
+    onNewEvent: () => set({ drawer: true, ne: { type: 'WEBINAR', where: 'Online', cap: '100', length: '60 min' }, neErr: '' }),
     onSave: saveSettings,
     toast: s.toast,
 
@@ -273,15 +273,24 @@ export function AdminScreen() {
           flash(e.published ? e.title + ' moved to draft' : e.title + ' is live on the Events page');
         } catch (err) { fail(err); }
       },
+      remove: async () => {
+        const regsNote = e.registrations ? ` Its ${e.registrations} registration${e.registrations === 1 ? '' : 's'} will be deleted too.` : '';
+        if (!window.confirm(`Delete "${e.title}"? This cannot be undone.${regsNote}`)) return;
+        try {
+          await api(`/admin/events/${e.id}`, { method: 'DELETE', auth: true });
+          set({ events: get().events.filter((x) => x.id !== e.id), regs: get().regs.filter((r) => r.eventId !== e.id) });
+          flash(e.title + ' was deleted');
+        } catch (err) { fail(err); }
+      },
     })),
     drawer: s.drawer,
     ne: s.ne,
     neErr: s.neErr,
     neTitleBorder: s.neErr ? '#B42318' : '#E2E2DF',
     typeOptions: ['WEBINAR', 'WORKSHOP', 'MEETUP', 'OFFICE HOURS'].map((t) => ({ v: t })),
-    neSet: Object.fromEntries(['title', 'type', 'date', 'time', 'where', 'cap'].map((k) => [k,
-      (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => set({ ne: { ...get().ne, [k]: e.target.value }, neErr: k === 'title' ? '' : get().neErr }),
-    ])) as Record<'title' | 'type' | 'date' | 'time' | 'where' | 'cap', (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void>,
+    neSet: Object.fromEntries(['title', 'type', 'date', 'time', 'where', 'cap', 'desc', 'length'].map((k) => [k,
+      (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => set({ ne: { ...get().ne, [k]: e.target.value }, neErr: k === 'title' ? '' : get().neErr }),
+    ])) as Record<'title' | 'type' | 'date' | 'time' | 'where' | 'cap' | 'desc' | 'length', (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void>,
     stop: (e: MouseEvent) => e.stopPropagation(),
     onCloseDrawer: () => set({ drawer: false }),
     onCreateEvent: async () => {
@@ -292,6 +301,7 @@ export function AdminScreen() {
         const ev = await api<AdminEvent>('/admin/events', { method: 'POST', auth: true, body: {
           title: ne.title.trim(), type: ne.type || 'WEBINAR', startsAt, location: ne.where || 'Online',
           capacity: Math.max(1, parseInt(ne.cap, 10) || 100),
+          description: (ne.desc || '').trim() || undefined, length: (ne.length || '').trim() || undefined,
         } });
         set({ events: [ev, ...get().events], drawer: false });
         flash('Draft created. Publish it when you are ready.');
@@ -561,6 +571,7 @@ export function AdminScreen() {
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", position: "relative" }}>
       <button type="button" className="btn btn-line btn-sm" onClick={e.viewRegs}>View registrations</button>
       <button type="button" className={`btn btn-sm ${e.pubClass}`} onClick={e.togglePub}>{e.pubLabel}</button>
+      <button type="button" className="btn btn-sm" onClick={e.remove} aria-label={`Delete ${e.title}`} style={{ marginLeft: "auto", background: "#FFFFFF", color: "#B42318", border: "1px solid #F3C7C3" }}>Delete</button>
       </div>
       </article>
       </Fragment>))}
@@ -678,6 +689,7 @@ export function AdminScreen() {
       <div><label className="lbl" htmlFor="ne-title">Title</label><div className="fld" style={{ borderColor: v.neTitleBorder }}><input id="ne-title" type="text" placeholder="Live demo: ask your numbers anything" value={v.ne.title} onChange={v.neSet.title} /></div>
       {v.neErr ? (<><div style={{ fontSize: "12px", color: "#B42318", marginTop: "6px" }}>{v.neErr}</div></>) : null}</div>
       <div><label className="lbl" htmlFor="ne-type">Type</label><div className="fld" style={{ position: "relative" }}><select id="ne-type" value={v.ne.type} onChange={v.neSet.type} style={{ appearance: "none", WebkitAppearance: "none", cursor: "pointer" }}>{(v.typeOptions || []).map((o: any, o_i: number) => (<Fragment key={o_i}><option value={o.v}>{o.v}</option></Fragment>))}</select><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" style={{ position: "absolute", right: "13px", pointerEvents: "none" }}><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="#5E5E5E" strokeWidth="1.6" strokeLinecap="round"></path></svg></div></div>
+      <div><label className="lbl" htmlFor="ne-desc">Description</label><div className="fld"><textarea id="ne-desc" rows={3} placeholder="What people will learn, who it is for." value={v.ne.desc || ''} onChange={v.neSet.desc} style={{ border: 0, outline: "none", background: "transparent", fontFamily: "inherit", fontSize: "14px", color: "#0A0A0A", width: "100%", padding: "11px 13px", resize: "vertical", boxSizing: "border-box" }} /></div></div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
       <div><label className="lbl" htmlFor="ne-date">Date</label><div className="fld"><input id="ne-date" type="date" value={v.ne.date} onChange={v.neSet.date} /></div></div>
       <div><label className="lbl" htmlFor="ne-time">Time</label><div className="fld"><input id="ne-time" type="time" value={v.ne.time} onChange={v.neSet.time} /></div></div>
@@ -685,6 +697,9 @@ export function AdminScreen() {
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: "12px" }}>
       <div><label className="lbl" htmlFor="ne-where">Where</label><div className="fld"><input id="ne-where" type="text" placeholder="Online" value={v.ne.where} onChange={v.neSet.where} /></div></div>
       <div><label className="lbl" htmlFor="ne-cap">Seats</label><div className="fld"><input id="ne-cap" type="number" min="1" placeholder="100" value={v.ne.cap} onChange={v.neSet.cap} /></div></div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: "12px" }}>
+      <div><label className="lbl" htmlFor="ne-length">Length</label><div className="fld"><input id="ne-length" type="text" placeholder="60 min" value={v.ne.length || ''} onChange={v.neSet.length} /></div></div>
       </div>
       <div style={{ marginTop: "auto", display: "flex", gap: "10px", justifyContent: "flex-end", paddingTop: "8px" }}>
       <button type="button" className="btn btn-line" onClick={v.onCloseDrawer}>Cancel</button>

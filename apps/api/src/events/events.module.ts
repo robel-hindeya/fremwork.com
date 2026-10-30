@@ -138,6 +138,12 @@ export class EventsService {
     return toEvent(row);
   }
 
+  async remove(id: string) {
+    const rows = SupabaseService.check(await this.db.from('events').delete().eq('id', id).select('id')) as any[];
+    if (!rows.length) throw new NotFoundException('That event no longer exists.');
+    return { ok: true };
+  }
+
   async registrations(eventId?: string, q?: string) {
     let query = this.db.from('event_registrations').select(REG_COLS).order('created_at', { ascending: false });
     if (eventId && eventId !== 'all') query = query.eq('event_id', eventId);
@@ -203,6 +209,13 @@ export class EventsController {
   @AdminOnly()
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateEventDto) {
     return this.events.update(id, dto);
+  }
+
+  @SkipThrottle()
+  @Delete('admin/events/:id')
+  @AdminOnly()
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.events.remove(id);
   }
 
   @SkipThrottle()
