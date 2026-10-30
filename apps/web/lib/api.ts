@@ -1,6 +1,10 @@
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { direct } from '@/lib/direct';
 
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/+$/, '');
+const CONFIGURED_API = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
+export const API_URL = CONFIGURED_API || 'http://localhost:4000';
+/** No API address in production: talk to Supabase directly. Locally, try the dev API first. */
+const API_DISABLED = !CONFIGURED_API && typeof window !== 'undefined' && window.location.hostname !== 'localhost';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -14,7 +18,22 @@ type Options = Omit<RequestInit, 'body'> & { body?: unknown; auth?: boolean };
  * Calls the NestJS API. With `auth: true` the current Supabase access token is sent
  * as a Bearer token; the API verifies it with Supabase before doing anything.
  */
-export async function api<T>(path: string, { body, auth, headers, ...init }: Options = {}): Promise<T> {
+export async function api<T>(path: string, opts: Options = {}): Promise<T> {
+  const method = (opts.method || 'GET').toUpperCase();
+  if (API_DISABLED) return direct<T>(method, path, opts.body);
+  try {
+    return await viaApi<T>(path, opts);
+  } catch (err) {
+    // API down, unreachable or misconfigured: serve the same request from Supabase.
+    if (err instanceof ApiError && (err.status === 0 || err.status >= 500)) {
+      console.warn(`Fremwork API failed (${err.status}) for ${method} ${path}; using Supabase directly.`);
+      return direct<T>(method, path, opts.body);
+    }
+    throw err;
+  }
+}
+
+async function viaApi<T>(path: string, { body, auth, headers, ...init }: Options = {}): Promise<T> {
   const h = new Headers(headers);
   if (body !== undefined) h.set('Content-Type', 'application/json');
   if (auth) {
