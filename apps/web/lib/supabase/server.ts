@@ -1,15 +1,13 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { SUPABASE_KEY, SUPABASE_URL } from '@/lib/supabase/config';
 
 /** Supabase client for Server Components, Route Handlers and Server Actions. */
 export async function getSupabaseServerClient() {
   const cookieStore = await cookies();
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-      'https://gwdrtfcqqnvhwolbjkab.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-      'sb_publishable_jzmf0N9Uo3Q2ZYAfAIbWCg_xBzWttHY',
+    SUPABASE_URL,
+    SUPABASE_KEY,
     {
       cookies: {
         getAll() {

@@ -10,21 +10,15 @@ export class SupabaseService {
   readonly hasServiceKey: boolean;
 
   constructor(config: ConfigService) {
-    const url =
-      config.get<string>('SUPABASE_URL') ||
-      process.env.SUPABASE_URL ||
-      process.env.NEXT_PUBLIC_SUPABASE_URL ||
-      'https://gwdrtfcqqnvhwolbjkab.supabase.co';
-    const key =
-      config.get<string>('SUPABASE_SERVICE_ROLE_KEY') ||
-      process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-      'sb_publishable_jzmf0N9Uo3Q2ZYAfAIbWCg_xBzWttHY';
-    this.hasServiceKey = !!(config.get<string>('SUPABASE_SERVICE_ROLE_KEY') || process.env.SUPABASE_SERVICE_ROLE_KEY);
+    // Fremwork's project. SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are NOT used: the Vercel Supabase
+    // integration injects those for a different database.
+    const url = config.get<string>('FREMWORK_SUPABASE_URL') || 'https://gwdrtfcqqnvhwolbjkab.supabase.co';
+    const secret = config.get<string>('FREMWORK_SUPABASE_SECRET_KEY') || '';
+    this.hasServiceKey = !!secret;
     if (!this.hasServiceKey) {
-      console.error('SUPABASE_SERVICE_ROLE_KEY is not set. The API is using the publishable key, so waitlist, events and admin writes will fail. Set it in the API environment.');
+      console.error('FREMWORK_SUPABASE_SECRET_KEY is not set. Set it to the secret key of the Fremwork Supabase project.');
     }
+    const key = secret || 'sb_publishable_jzmf0N9Uo3Q2ZYAfAIbWCg_xBzWttHY';
     this.db = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
   }
 

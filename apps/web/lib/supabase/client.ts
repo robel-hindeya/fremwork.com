@@ -1,4 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
+import { SUPABASE_KEY, SUPABASE_URL } from '@/lib/supabase/config';
 
 let client: ReturnType<typeof createBrowserClient> | undefined;
 
@@ -6,11 +7,8 @@ let client: ReturnType<typeof createBrowserClient> | undefined;
 export function getSupabaseBrowserClient() {
   if (!client) {
     client = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL ||
-      'https://gwdrtfcqqnvhwolbjkab.supabase.co',
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-      'sb_publishable_jzmf0N9Uo3Q2ZYAfAIbWCg_xBzWttHY',
+      SUPABASE_URL,
+      SUPABASE_KEY,
     );
   }
   return client;
