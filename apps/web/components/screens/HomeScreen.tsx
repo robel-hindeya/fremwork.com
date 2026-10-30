@@ -341,7 +341,7 @@ export function HomeScreen() {
       <p style={{ margin: "0", fontSize: "16px", lineHeight: "24px", color: "#3A3A38" }}>We are letting businesses in a few at a time.</p>
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px", marginTop: "18px" }}>
       <Link href="/waitlist" className="cta-dark" style={{ textDecoration: "none", fontSize: "15px", fontWeight: "500", color: "#FFFFFF", background: "#0A0A0A", borderRadius: "999px", padding: "14px 24px" }}>Join the waitlist</Link>
-      <Link href="/events" className="cta-light" style={{ textDecoration: "none", fontSize: "15px", fontWeight: "500", color: "#0A0A0A", background: "#FFFFFF", border: "1px solid #E2E2DF", borderRadius: "999px", padding: "13px 24px" }}>See a live demo</Link>
+      <Link href="/events" className="cta-light" style={{ textDecoration: "none", fontSize: "15px", fontWeight: "500", color: "#0A0A0A", background: "#FFFFFF", border: "1px solid #E2E2DF", borderRadius: "999px", padding: "13px 24px" }}>Events</Link>
       </div>
       </div>
       </div>
@@ -398,7 +398,7 @@ export function HomeScreen() {
       <p style={{ margin: "0", fontSize: "16px", lineHeight: "24px", color: "#3A3A38" }}>We are letting businesses in a few at a time.</p>
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "10px", marginTop: "18px" }}>
       <Link href="/waitlist" className="cta-dark" style={{ textDecoration: "none", fontSize: "15px", fontWeight: "500", color: "#FFFFFF", background: "#0A0A0A", borderRadius: "999px", padding: "14px 24px" }}>Join the waitlist</Link>
-      <Link href="/events" className="cta-light" style={{ textDecoration: "none", fontSize: "15px", fontWeight: "500", color: "#0A0A0A", background: "#FFFFFF", border: "1px solid #E2E2DF", borderRadius: "999px", padding: "13px 24px" }}>See a live demo</Link>
+      <Link href="/events" className="cta-light" style={{ textDecoration: "none", fontSize: "15px", fontWeight: "500", color: "#0A0A0A", background: "#FFFFFF", border: "1px solid #E2E2DF", borderRadius: "999px", padding: "13px 24px" }}>Events</Link>
       </div>
       </div>
       </div>
