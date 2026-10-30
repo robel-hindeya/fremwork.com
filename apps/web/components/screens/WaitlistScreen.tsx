@@ -7,7 +7,8 @@ import '@/styles/waitlist.css';
 import { useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { useFram } from '@/components/fram/useFram';
 import { useMergeState } from '@/components/fram/useMergeState';
-import { api, type PublicSettings } from '@/lib/api';
+import { api, ApiError, type PublicSettings } from '@/lib/api';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { EMAIL_RE } from '@/lib/format';
 
 const ROLES = ['Business owner', 'Finance officer', 'Analyst', 'Accountant', 'Manager', 'Other'];
@@ -43,7 +44,17 @@ export function WaitlistScreen() {
     if (errs.nameErr || errs.emailErr || errs.roleErr) return set(errs);
     set({ loading: true, formErr: '' });
     try {
-      await api('/waitlist', { method: 'POST', body: { name: nm, email: em, company: st.company.trim() || undefined, role: st.role } });
+      const body = { name: nm, email: em, company: st.company.trim() || undefined, role: st.role };
+      try {
+        await api('/waitlist', { method: 'POST', body });
+      } catch (err) {
+        // API unreachable (status 0): save straight to Supabase with the same rules.
+        if (!(err instanceof ApiError) || err.status !== 0) throw err;
+        const { error } = await getSupabaseBrowserClient().rpc('join_waitlist', {
+          p_name: body.name, p_email: body.email, p_company: body.company ?? null, p_role: body.role,
+        });
+        if (error) throw new Error(error.message);
+      }
       set({ loading: false, done: true });
     } catch (err) {
       set({ loading: false, formErr: (err as Error).message });
