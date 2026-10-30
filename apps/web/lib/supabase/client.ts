@@ -7,10 +7,10 @@ export function getSupabaseBrowserClient() {
   if (!client) {
     client = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL ||
-        'https://gwdrtfcqqnvhwolbjkab.supabase.co',
+      'https://gwdrtfcqqnvhwolbjkab.supabase.co',
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-        'sb_publishable_jzmf0N9Uo3Q2ZYAfAIbWCg_xBzWttHY',
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+      'sb_publishable_jzmf0N9Uo3Q2ZYAfAIbWCg_xBzWttHY',
     );
   }
   return client;

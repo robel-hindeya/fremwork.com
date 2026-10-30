@@ -3,6 +3,9 @@
   "private": true,
   "packageManager": "pnpm@10.12.1",
   "engines": { "node": ">=20" },
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev": "pnpm --parallel --filter @fremwork/web --filter @fremwork/api dev",
     "dev:web": "pnpm --filter @fremwork/web dev",
