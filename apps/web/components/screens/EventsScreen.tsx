@@ -2,7 +2,7 @@
 
 import { Fragment } from 'react';
 import Link from 'next/link';
-import { FramSvg } from '@/components/fram/FramSvg';
+import { FramSvg, type FramFace } from '@/components/fram/FramSvg';
 import '@/styles/events.css';
 import { useEffect, useRef, type ChangeEvent, type FormEvent, type KeyboardEvent, type MouseEvent } from 'react';
 import { useFram } from '@/components/fram/useFram';
@@ -98,7 +98,9 @@ export function EventsScreen({ initialEvents, settings }: { initialEvents: Publi
     if (bad) return set({ regErr: errs, regFormErr: 'Please fill in the required fields to register.' });
     set({ regLoading: true, regFormErr: '' });
     try {
-      const answers = Object.fromEntries(FORM_FIELDS.map((f) => [f.id, (st.fv[f.id] || '').trim()]).filter(([, v]) => v));
+      const answers: Record<string, string> = Object.fromEntries(
+        FORM_FIELDS.map((f): [string, string] => [f.id, (st.fv[f.id] || '').trim()]).filter(([, val]) => val),
+      );
       const r = await api<Registration>(`/events/${ev.id}/registrations`, { method: 'POST', body: answers });
       const next = { ...get().reg, [ev.id]: { ...r, answers } };
       saveRegs(next);
@@ -129,7 +131,7 @@ export function EventsScreen({ initialEvents, settings }: { initialEvents: Publi
   const RE = events[ri >= 0 ? ri : 0];
   const open = ri >= 0 && !!RE;
   const isReg = open && !!reg[RE.id];
-  const data = open ? reg[RE.id]?.answers || {} : {};
+  const data: Record<string, string> = (open && reg[RE.id]?.answers) || {};
 
   // Template bindings for the ported markup (values mirror the design file's renderVals).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,8 +163,8 @@ export function EventsScreen({ initialEvents, settings }: { initialEvents: Publi
       return {
         domId: 'reg-' + f.id, label: f.label, reqMark: required[f.id] ? '*' : '', reqColor: '#B42318',
         isText: f.type !== 'select', isSelect: f.type === 'select', inputType: f.type === 'select' ? 'text' : f.type,
-        auto: 'auto' in f ? f.auto : 'off', placeholder: f.placeholder, value: val, selColor: val ? '#0A0A0A' : '#A3A3A0',
-        options: ('options' in f ? f.options : []).map((o) => ({ v: o })),
+        auto: 'auto' in f ? (f.auto as string) : 'off', placeholder: f.placeholder, value: val, selColor: val ? '#0A0A0A' : '#A3A3A0',
+        options: ('options' in f ? (f.options as readonly string[]) : []).map((o) => ({ v: o })),
         onChange: (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
           const st = get();
           set({ fv: { ...st.fv, [f.id]: e.target.value }, regErr: { ...st.regErr, [f.id]: '' }, regFormErr: '' });
@@ -212,7 +214,7 @@ export function EventsScreen({ initialEvents, settings }: { initialEvents: Publi
       <div style={{ marginTop: "8px" }}><button type="button" className="reg" onClick={v.featured.toggle} aria-pressed={v.featured.pressed} style={{ fontFamily: "inherit", fontSize: "14px", fontWeight: "500", color: v.featured.btnColor, background: v.featured.btnBg, border: "1px solid #0A0A0A", borderRadius: "6px", padding: "10px 16px", cursor: "pointer" }}>{v.featured.btnLabel}</button></div>
       </div>
       <div style={{ position: "relative", zIndex: "1", width: "38%", flex: "none" }}>
-      <FramSvg f={v} label="Fram, the Fremwork character, waving hello" className="fram-svg" svgRef={v.setFram} onMouseDown={v.onPoke} style={{ display: "block", width: "100%", height: "auto", overflow: "visible" }} />
+      <FramSvg f={v as FramFace} label="Fram, the Fremwork character, waving hello" className="fram-svg" svgRef={v.setFram} onMouseDown={v.onPoke} style={{ display: "block", width: "100%", height: "auto", overflow: "visible" }} />
       </div>
       </div>
       </div>

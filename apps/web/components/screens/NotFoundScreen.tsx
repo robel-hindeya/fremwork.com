@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FramSvg } from '@/components/fram/FramSvg';
+import { FramSvg, type FramFace } from '@/components/fram/FramSvg';
 import '@/styles/not-found.css';
 import { useFram } from '@/components/fram/useFram';
 
@@ -23,7 +23,7 @@ export function NotFoundScreen() {
       <h1 aria-label="404" style={{ margin: "28px 0 0", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.04em", fontSize: "clamp(96px, 26vw, 280px)", lineHeight: "0.9", letterSpacing: "-0.06em", fontWeight: "600" }}>
       <span aria-hidden="true">4</span>
       <span aria-hidden="true" style={{ display: "inline-block", width: "0.92em", margin: "0 0.02em", transform: "translateY(0.06em)" }}>
-      <FramSvg f={v} label="Fram, the Fremwork character, waving hello" className="fram-svg" svgRef={v.setFram} onMouseDown={v.onPoke} style={{ display: "block", width: "100%", height: "auto", overflow: "visible" }} />
+      <FramSvg f={v as FramFace} label="Fram, the Fremwork character, waving hello" className="fram-svg" svgRef={v.setFram} onMouseDown={v.onPoke} style={{ display: "block", width: "100%", height: "auto", overflow: "visible" }} />
       </span>
       <span aria-hidden="true">4</span>
       </h1>

@@ -2,7 +2,7 @@
 
 import { Fragment } from 'react';
 import Link from 'next/link';
-import { FramSvg } from '@/components/fram/FramSvg';
+import { FramSvg, type FramFace } from '@/components/fram/FramSvg';
 import '@/styles/waitlist.css';
 import { useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { useFram } from '@/components/fram/useFram';
@@ -88,7 +88,7 @@ export function WaitlistScreen() {
       <div aria-hidden="true" style={{ position: "absolute", right: "-25%", top: "-20%", width: "80%", height: "60%", borderRadius: "50%", background: "radial-gradient(closest-side, rgba(255,255,255,0.9), rgba(255,255,255,0))", filter: "blur(20px)" }}></div>
       <Link href="/" style={{ position: "relative", zIndex: "1", alignSelf: "flex-start", display: "flex", alignItems: "center", gap: "8px", fontWeight: "600", fontSize: "19px", letterSpacing: "-0.03em", textDecoration: "none", color: "#0A0A0A" }}><span aria-hidden="true" style={{ width: "14px", height: "14px", background: "#C6F432", boxShadow: "inset 0 0 0 2px #0A0A0A" }}></span>Fremwork</Link>
       <div style={{ position: "relative", zIndex: "1", width: "62%", alignSelf: "center", margin: "24px 0" }}>
-      <FramSvg f={v} label="Fram, the Fremwork character, waving" className="fram-svg" svgRef={v.setFram} onMouseDown={v.onPoke} style={{ display: "block", width: "100%", height: "auto", overflow: "visible" }} />
+      <FramSvg f={v as FramFace} label="Fram, the Fremwork character, waving" className="fram-svg" svgRef={v.setFram} onMouseDown={v.onPoke} style={{ display: "block", width: "100%", height: "auto", overflow: "visible" }} />
       </div>
       <div style={{ position: "relative", zIndex: "1" }}>
       <p style={{ margin: "0", fontSize: "14px", color: "#3A3A38" }}>Early access</p>

@@ -139,9 +139,15 @@ export function AdminScreen() {
   s.wl.forEach((r) => { if (r.role) rc[r.role] = (rc[r.role] || 0) + 1; });
   const rmax = Math.max(1, ...ROLES.map((r) => rc[r] || 0));
 
-  const opt = (k: keyof Settings, label: string, note: string) => {
-    const t = sw(!!s.settings[k]);
-    return { label, note, on: t.on, bg: t.bg, left: t.left, toggle: () => set({ settings: { ...get().settings, [k]: !get().settings[k] }, dirty: true }) };
+  type Flag = 'acceptSignups' | 'welcomeEmail' | 'askCompany' | 'alertInstant' | 'alertDigest';
+  const opt = (k: Flag, label: string, note: string) => {
+    const t = sw(s.settings[k]);
+    const toggle = () => {
+      const next: Settings = { ...get().settings };
+      next[k] = !next[k];
+      set({ settings: next, dirty: true });
+    };
+    return { label, note, on: t.on, bg: t.bg, left: t.left, toggle };
   };
 
   // Template bindings for the ported markup (values mirror the design file's renderVals).

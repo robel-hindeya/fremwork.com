@@ -12,7 +12,7 @@ export function useMergeState<S extends object>(initial: S) {
   ref.current = state;
   const set = useCallback((patch: Partial<S> | ((s: S) => Partial<S>)) => {
     setRaw((prev) => {
-      const p = typeof patch === 'function' ? patch(prev) : patch;
+      const p = typeof patch === 'function' ? (patch as (s: S) => Partial<S>)(prev) : (patch as Partial<S>);
       const next = { ...prev, ...p };
       ref.current = next;
       return next;

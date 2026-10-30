@@ -2,7 +2,7 @@
 
 import { Fragment } from 'react';
 import Link from 'next/link';
-import { FramSvg } from '@/components/fram/FramSvg';
+import { FramSvg, type FramFace } from '@/components/fram/FramSvg';
 import '@/styles/home.css';
 import { useEffect, useMemo, useRef, type ChangeEvent, type FormEvent, type MouseEvent } from 'react';
 import { faceFrom, useBlinkWave } from '@/components/fram/useFram';
@@ -244,7 +244,7 @@ export function HomeScreen() {
       {/* HERO */}
       <section id="top" onMouseMove={v.onMove} onMouseEnter={v.onEnter} onMouseLeave={v.onLeave} onMouseDown={v.onDown} style={{ padding: "72px 16px 0", overflow: "hidden" }}>
       <div style={{ maxWidth: "1120px", margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-      <h1 style={{ margin: "24px 0 0", fontSize: "clamp(40px, 7vw, 92px)", lineHeight: "1.04", letterSpacing: "-0.045em", fontWeight: "600", color: "#0A0A0A", background: "#FAFAF8" }}>One <span className="tile" ref={v.setTile} style={{ display: "inline-block", width: "1.3em", margin: "0 0.06em 0 0.1em", verticalAlign: "-0.16em" }}><FramSvg f={v} label="Fram, the Fremwork character, waving" style={{ display: "block", width: "100%", height: "auto", overflow: "visible" }} bob /></span> chat.<br />A whole <span className="bubble" style={{ position: "relative", display: "inline-block", margin: "14px 4px 6px 0", padding: "0.04em 0.28em 0.1em", background: "#C6F432", border: "3px solid #0A0A0A", color: "#0A0A0A", transform: "rotate(-3deg)" }}>finance team<span aria-hidden="true" style={{ position: "absolute", left: "18%", bottom: "-15px", width: "22px", height: "22px", background: "#C6F432", borderRight: "3px solid #0A0A0A", borderBottom: "3px solid #0A0A0A", transform: "skewX(-24deg) rotate(45deg) scale(.7,1)", transformOrigin: "center" }}></span></span>.</h1>
+      <h1 style={{ margin: "24px 0 0", fontSize: "clamp(40px, 7vw, 92px)", lineHeight: "1.04", letterSpacing: "-0.045em", fontWeight: "600", color: "#0A0A0A", background: "#FAFAF8" }}>One <span className="tile" ref={v.setTile} style={{ display: "inline-block", width: "1.3em", margin: "0 0.06em 0 0.1em", verticalAlign: "-0.16em" }}><FramSvg f={v as FramFace} label="Fram, the Fremwork character, waving" style={{ display: "block", width: "100%", height: "auto", overflow: "visible" }} bob /></span> chat.<br />A whole <span className="bubble" style={{ position: "relative", display: "inline-block", margin: "14px 4px 6px 0", padding: "0.04em 0.28em 0.1em", background: "#C6F432", border: "3px solid #0A0A0A", color: "#0A0A0A", transform: "rotate(-3deg)" }}>finance team<span aria-hidden="true" style={{ position: "absolute", left: "18%", bottom: "-15px", width: "22px", height: "22px", background: "#C6F432", borderRight: "3px solid #0A0A0A", borderBottom: "3px solid #0A0A0A", transform: "skewX(-24deg) rotate(45deg) scale(.7,1)", transformOrigin: "center" }}></span></span>.</h1>
       <p style={{ margin: "28px auto 0", maxWidth: "860px", fontSize: "18px", lineHeight: "28px", color: "#5E5E5E", textAlign: "center" }}>Fremwork is an AI financial assistant for business owners and finance teams. Ask a question about your <span style={{ whiteSpace: "nowrap" }}>finances. Get a clear answer.</span></p>
       {/* App window preview (macOS, light) */}
       <div style={{ width: "100%", margin: "64px 0 104px", textAlign: "left" }}>
@@ -354,7 +354,7 @@ export function HomeScreen() {
       <p style={{ margin: "0", fontSize: "17px", lineHeight: "28px", color: "#5E5E5E" }}>Message it about cash, margin, spend or overdue invoices in plain language. Fremwork reads your figures, explains what changed and ends every answer with a recommendation you can act on.</p>
       <a href="#product" style={{ alignSelf: "flex-start", marginTop: "8px", color: "#0A0A0A", textDecoration: "none", fontSize: "15px", fontWeight: "500", borderBottom: "1px solid #0A0A0A", paddingBottom: "2px" }}>See how it works →</a>
       </div>
-      <FramSvg f={v} label="Fram, the Fremwork character, peeking in" className="fram-big" style={{ transform: `translate(${v.cardTx}px, ${v.cardTy}px) rotate(${v.cardRot}deg)`, transformOrigin: "50% 85%", transition: "transform 420ms cubic-bezier(.2,.8,.2,1)" }} bob />
+      <FramSvg f={v as FramFace} label="Fram, the Fremwork character, peeking in" className="fram-big" style={{ transform: `translate(${v.cardTx}px, ${v.cardTy}px) rotate(${v.cardRot}deg)`, transformOrigin: "50% 85%", transition: "transform 420ms cubic-bezier(.2,.8,.2,1)" }} bob />
       </div>
       </section>
       {/* FEATURES */}

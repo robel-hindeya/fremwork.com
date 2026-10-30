@@ -36,7 +36,7 @@ export async function api<T>(path: string, { body, auth, headers, ...init }: Opt
     throw new ApiError(res.status, message);
   }
   const type = res.headers.get('content-type') || '';
-  return (type.includes('application/json') ? res.json() : res.text()) as Promise<T>;
+  return (type.includes('application/json') ? await res.json() : await res.text()) as T;
 }
 
 /** Downloads a file from an authenticated API endpoint. */
