@@ -172,6 +172,7 @@ export function LoginScreen() {
       <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "26px" }}>
       <Link href="/admin" className="btn-dark" style={{ textDecoration: "none", fontSize: "14px", fontWeight: "500", color: "#FFFFFF", background: "#0A0A0A", borderRadius: "6px", padding: "12px 20px" }}>Open admin</Link>
       <Link href="/" className="sso" style={{ textDecoration: "none", fontSize: "14px", fontWeight: "500", color: "#0A0A0A", background: "#FAFAF8", border: "1px solid #EDEDED", borderRadius: "6px", padding: "11px 20px" }}>Back to home</Link>
+      <Link href="/set-password" className="sso" style={{ textDecoration: "none", fontSize: "14px", fontWeight: "500", color: "#0A0A0A", background: "#FAFAF8", border: "1px solid #EDEDED", borderRadius: "6px", padding: "11px 20px" }}>Change password</Link>
       <button type="button" className="sso" onClick={v.onReset} style={{ fontFamily: "inherit", fontSize: "14px", fontWeight: "500", color: "#0A0A0A", background: "#FAFAF8", border: "1px solid #EDEDED", borderRadius: "6px", padding: "11px 20px", cursor: "pointer" }}>Log out</button>
       </div>
       </div>

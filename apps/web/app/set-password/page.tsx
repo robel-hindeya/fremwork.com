@@ -40,8 +40,8 @@ export default function SetPasswordPage() {
               <span aria-hidden="true" style={{ width: 14, height: 14, background: '#C6F432', boxShadow: 'inset 0 0 0 2px #0A0A0A' }} />
               Fremwork
             </Link>
-            <h1 style={{ margin: 0, fontSize: 30, lineHeight: 1.15, letterSpacing: '-0.03em', fontWeight: 600 }}>Set your password</h1>
-            <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: '22px', color: '#8C8C8C' }}>Choose a password you will use to log in to Fremwork.</p>
+            <h1 style={{ margin: 0, fontSize: 30, lineHeight: 1.15, letterSpacing: '-0.03em', fontWeight: 600 }}>Set a new password</h1>
+            <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: '22px', color: '#8C8C8C' }}>Choose the password you will use to log in to Fremwork from now on.</p>
             <form onSubmit={onSubmit} noValidate style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 <label htmlFor="sp-1" style={{ fontSize: 13, fontWeight: 500 }}>New password</label>
