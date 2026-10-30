@@ -49,7 +49,7 @@ export class TeamService {
       return { name: nameFromEmail(em), email: em, role: existing.role === 'owner' ? 'owner' : 'admin' };
     }
 
-    const web = this.config.get<string>('WEB_URL') ?? 'http://localhost:3000';
+    const web = (this.config.get<string>('WEB_URL') ?? 'http://localhost:3000').split(',')[0].trim().replace(/\/+$/, '');
     const { error } = await db.auth.admin.inviteUserByEmail(em, { redirectTo: `${web}/set-password` });
     if (error) throw new BadRequestException(error.message);
     return { name: nameFromEmail(em), email: em, role: 'invited' };

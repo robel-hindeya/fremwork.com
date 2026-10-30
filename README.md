@@ -75,8 +75,14 @@ From then on, invite teammates from Admin › Settings › Team. Invite emails s
   - URL configuration: set Site URL to your web domain and add `https://<domain>/auth/callback` and `https://<domain>/auth/confirm` to the redirect URLs.
   - Email templates: paste `supabase/templates/invite.html` into "Invite user" and `recovery.html` into "Reset password". Invite links need these to sign people in.
   - Providers: turn on Google, Azure (Microsoft) and Apple and add their client IDs. Locally, set them in `supabase/config.toml`.
-- **API**: any Node host (Render, Railway, Fly, a container). Set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `WEB_URL`, `PORT`. Run `pnpm --filter @fremwork/api build`, then `node dist/main.js`.
-- **Web**: Vercel or any Next.js host. Set the four `NEXT_PUBLIC_*` variables.
+- **API on Vercel** (a second Vercel project from the same repo):
+  1. Vercel → Add New → Project → import `fremwork.com` again. Set **Root Directory** to `apps/api`. Vercel detects NestJS.
+  2. Environment variables: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `WEB_URL` = your site's URL(s), e.g. `https://fremwork.com,https://fremwork-com.vercel.app`. Optional: `ALLOW_VERCEL_PREVIEWS=true`.
+  3. Deploy, then open `https://<api-domain>/health`. It should return `{"ok":true}`.
+  Other hosts (Render, Railway, Fly) work too: build with `npm run build`, start with `node dist/main.js`.
+- **Web on Vercel**: Root Directory `apps/web`. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL` (the site's URL) and `NEXT_PUBLIC_API_URL` (the API's URL from step 3). `NEXT_PUBLIC_*` values are baked in at build time, so **redeploy the web project after changing them**.
+
+If a form says "We could not reach Fremwork right now", the browser console shows the API URL it tried. Usually `NEXT_PUBLIC_API_URL` is missing, or the site's URL is not in the API's `WEB_URL`.
 
 ## API
 

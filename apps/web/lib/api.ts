@@ -1,6 +1,6 @@
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/+$/, '');
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -22,11 +22,18 @@ export async function api<T>(path: string, { body, auth, headers, ...init }: Opt
     const token = data.session?.access_token;
     if (token) h.set('Authorization', `Bearer ${token}`);
   }
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: h,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      headers: h,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch {
+    // Network error: the API is down, the URL is wrong, or CORS blocked the request.
+    console.error(`Fremwork API not reachable at ${API_URL}. Check NEXT_PUBLIC_API_URL and the API's WEB_URL.`);
+    throw new ApiError(0, 'We could not reach Fremwork right now. Try again in a minute.');
+  }
   if (!res.ok) {
     let message = 'Something went wrong. Try again.';
     try {

@@ -59,7 +59,7 @@ export class WaitlistService {
     const rows = SupabaseService.check(
       await this.supabase.db.from('waitlist_entries').select('id, name, email, company, role, status, created_at').in('id', ids),
     ) as Row[];
-    const web = this.config.get<string>('WEB_URL') ?? 'http://localhost:3000';
+    const web = (this.config.get<string>('WEB_URL') ?? 'http://localhost:3000').split(',')[0].trim().replace(/\/+$/, '');
     let invited = 0;
     const changed: number[] = [];
     for (const r of rows) {
