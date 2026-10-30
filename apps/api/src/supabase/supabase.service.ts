@@ -8,9 +8,17 @@ export class SupabaseService {
   readonly db: SupabaseClient;
 
   constructor(config: ConfigService) {
-    const url = config.get<string>('SUPABASE_URL');
-    const key = config.get<string>('SUPABASE_SERVICE_ROLE_KEY');
-    if (!url || !key) throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set (see apps/api/.env.example)');
+    const url =
+      config.get<string>('SUPABASE_URL') ||
+      process.env.SUPABASE_URL ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      'https://gwdrtfcqqnvhwolbjkab.supabase.co';
+    const key =
+      config.get<string>('SUPABASE_SERVICE_ROLE_KEY') ||
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+      'sb_publishable_jzmf0N9Uo3Q2ZYAfAIbWCg_xBzWttHY';
     this.db = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
   }
 
