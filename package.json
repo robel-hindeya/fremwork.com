@@ -15,5 +15,10 @@
     "db:start": "supabase start",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local > apps/api/src/supabase/database.types.ts"
+  },
+  "devDependencies": {
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
   }
 }
