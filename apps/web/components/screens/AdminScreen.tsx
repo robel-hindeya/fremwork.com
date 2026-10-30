@@ -13,7 +13,7 @@ import { EMAIL_RE, formatShortDate, formatWhen, initials, timeAgo } from '@/lib/
 type Status = 'waiting' | 'invited' | 'active';
 interface Me { id: string; email: string; name: string; role: string; isAdmin: boolean }
 interface WlEntry { id: number; name: string; email: string; company: string | null; role: string | null; status: Status; createdAt: string }
-interface AdminEvent { id: string; type: EventType; title: string; length: string; whenLabel: string | null; startsAt: string | null; location: string; capacity: number; published: boolean; registrations: number }
+interface AdminEvent { id: string; type: EventType; title: string; description?: string; length: string; whenLabel: string | null; startsAt: string | null; location: string; capacity: number; published: boolean; registrations: number }
 interface Reg { id: number; eventId: string; name: string; email: string; company: string | null; role: string | null; companySize: string | null; heardFrom: string | null; checkedIn: boolean }
 interface Settings { acceptSignups: boolean; welcomeEmail: boolean; askCompany: boolean; alertInstant: boolean; alertDigest: boolean; notifyEmail: string; requiredFields: Record<string, boolean> }
 interface Overview { weeks: number[]; activity: { kind: string; text: string; at: string }[] }
@@ -55,6 +55,18 @@ const DOT: Record<string, string> = { waitlist: '#C6F432', registration: '#F5A52
 const sw = (on: boolean) => ({ on: on ? 'true' : 'false', bg: on ? '#0A0A0A' : '#D6D6D2', left: on ? '19px' : '3px' });
 const DEFAULT_SETTINGS: Settings = { acceptSignups: true, welcomeEmail: true, askCompany: true, alertInstant: true, alertDigest: false, notifyEmail: '', requiredFields: { name: true, email: true } };
 
+/** Pre-fills the event panel for editing (date and time in the admin's local time zone). */
+function editForm(e: AdminEvent): Record<string, string> {
+  const d = e.startsAt ? new Date(e.startsAt) : null;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return {
+    id: e.id, title: e.title, type: e.type, desc: e.description || '', length: e.length || '',
+    where: e.location, cap: String(e.capacity),
+    date: d ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` : '',
+    time: d ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : '',
+  };
+}
+
 /** Admin · ported from Admin.dc.html. Every list and action goes through the NestJS admin API. */
 export function AdminScreen() {
   const router = useRouter();
@@ -88,6 +100,9 @@ export function AdminScreen() {
         api<TeamMember[]>('/admin/team', { auth: true }),
       ]);
       set({ me, overview, wl, events, regs, settings, team, notifyEmail: settings.notifyEmail || '', loading: false });
+      const editId = new URLSearchParams(window.location.search).get('edit');
+      const toEdit = editId ? events.find((e) => e.id === editId) : undefined;
+      if (toEdit) set({ tab: 'events', drawer: true, neErr: '', ne: editForm(toEdit) });
     } catch (err) {
       set({ loading: false });
       fail(err);
@@ -273,6 +288,7 @@ export function AdminScreen() {
           flash(e.published ? e.title + ' moved to draft' : e.title + ' is live on the Events page');
         } catch (err) { fail(err); }
       },
+      edit: () => set({ drawer: true, neErr: '', ne: editForm(e) }),
       remove: async () => {
         const regsNote = e.registrations ? ` Its ${e.registrations} registration${e.registrations === 1 ? '' : 's'} will be deleted too.` : '';
         if (!window.confirm(`Delete "${e.title}"? This cannot be undone.${regsNote}`)) return;
@@ -293,18 +309,28 @@ export function AdminScreen() {
     ])) as Record<'title' | 'type' | 'date' | 'time' | 'where' | 'cap' | 'desc' | 'length', (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void>,
     stop: (e: MouseEvent) => e.stopPropagation(),
     onCloseDrawer: () => set({ drawer: false }),
+    drawerTitle: s.ne.id ? 'Edit event' : 'New event',
+    drawerNote: s.ne.id ? 'Changes go live on the Events page as soon as you save.' : 'It is saved as a draft. Publish it from the Events list when it is ready.',
+    drawerAction: s.ne.id ? 'Save changes' : 'Create draft',
     onCreateEvent: async () => {
       const ne = get().ne;
       if (!(ne.title || '').trim()) return set({ neErr: 'Give the event a title.' });
       const startsAt = ne.date ? new Date(`${ne.date}T${ne.time || '09:00'}`).toISOString() : undefined;
+      const body = {
+        title: ne.title.trim(), type: ne.type || 'WEBINAR', startsAt, location: ne.where || 'Online',
+        capacity: Math.max(1, parseInt(ne.cap, 10) || 100),
+        description: (ne.desc || '').trim(), length: (ne.length || '').trim() || '60 min',
+      };
       try {
-        const ev = await api<AdminEvent>('/admin/events', { method: 'POST', auth: true, body: {
-          title: ne.title.trim(), type: ne.type || 'WEBINAR', startsAt, location: ne.where || 'Online',
-          capacity: Math.max(1, parseInt(ne.cap, 10) || 100),
-          description: (ne.desc || '').trim() || undefined, length: (ne.length || '').trim() || undefined,
-        } });
-        set({ events: [ev, ...get().events], drawer: false });
-        flash('Draft created. Publish it when you are ready.');
+        if (ne.id) {
+          const ev = await api<AdminEvent>(`/admin/events/${ne.id}`, { method: 'PATCH', auth: true, body });
+          set({ events: get().events.map((x) => (x.id === ne.id ? ev : x)), drawer: false });
+          flash(ev.title + ' was updated');
+        } else {
+          const ev = await api<AdminEvent>('/admin/events', { method: 'POST', auth: true, body: { ...body, description: body.description || undefined } });
+          set({ events: [ev, ...get().events], drawer: false });
+          flash('Draft created. Publish it when you are ready.');
+        }
       } catch (err) { fail(err); }
     },
 
@@ -571,6 +597,7 @@ export function AdminScreen() {
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", position: "relative" }}>
       <button type="button" className="btn btn-line btn-sm" onClick={e.viewRegs}>View registrations</button>
       <button type="button" className={`btn btn-sm ${e.pubClass}`} onClick={e.togglePub}>{e.pubLabel}</button>
+      <button type="button" className="btn btn-line btn-sm" onClick={e.edit} aria-label={`Edit ${e.title}`}>Edit</button>
       <button type="button" className="btn btn-sm" onClick={e.remove} aria-label={`Delete ${e.title}`} style={{ marginLeft: "auto", background: "#FFFFFF", color: "#B42318", border: "1px solid #F3C7C3" }}>Delete</button>
       </div>
       </article>
@@ -682,10 +709,10 @@ export function AdminScreen() {
       <div className="scrim" onClick={v.onCloseDrawer}>
       <div className="drawer" role="dialog" aria-modal="true" aria-labelledby="dr-title" onClick={v.stop}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <h2 id="dr-title" style={{ margin: "0", fontSize: "20px", fontWeight: "600", letterSpacing: "-0.02em" }}>New event</h2>
+      <h2 id="dr-title" style={{ margin: "0", fontSize: "20px", fontWeight: "600", letterSpacing: "-0.02em" }}>{v.drawerTitle}</h2>
       <button type="button" aria-label="Close" onClick={v.onCloseDrawer} style={{ width: "34px", height: "34px", borderRadius: "50%", border: "1px solid #E2E2DF", background: "#FFFFFF", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2 L10 10 M10 2 L2 10" stroke="#0A0A0A" strokeWidth="1.6" strokeLinecap="round"></path></svg></button>
       </div>
-      <p style={{ margin: "0", fontSize: "13px", color: "#5E5E5E" }}>It is saved as a draft. Publish it from the Events list when it is ready.</p>
+      <p style={{ margin: "0", fontSize: "13px", color: "#5E5E5E" }}>{v.drawerNote}</p>
       <div><label className="lbl" htmlFor="ne-title">Title</label><div className="fld" style={{ borderColor: v.neTitleBorder }}><input id="ne-title" type="text" placeholder="Live demo: ask your numbers anything" value={v.ne.title} onChange={v.neSet.title} /></div>
       {v.neErr ? (<><div style={{ fontSize: "12px", color: "#B42318", marginTop: "6px" }}>{v.neErr}</div></>) : null}</div>
       <div><label className="lbl" htmlFor="ne-type">Type</label><div className="fld" style={{ position: "relative" }}><select id="ne-type" value={v.ne.type} onChange={v.neSet.type} style={{ appearance: "none", WebkitAppearance: "none", cursor: "pointer" }}>{(v.typeOptions || []).map((o: any, o_i: number) => (<Fragment key={o_i}><option value={o.v}>{o.v}</option></Fragment>))}</select><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" style={{ position: "absolute", right: "13px", pointerEvents: "none" }}><path d="M2.5 4.5 L6 8 L9.5 4.5" fill="none" stroke="#5E5E5E" strokeWidth="1.6" strokeLinecap="round"></path></svg></div></div>
@@ -703,7 +730,7 @@ export function AdminScreen() {
       </div>
       <div style={{ marginTop: "auto", display: "flex", gap: "10px", justifyContent: "flex-end", paddingTop: "8px" }}>
       <button type="button" className="btn btn-line" onClick={v.onCloseDrawer}>Cancel</button>
-      <button type="button" className="btn btn-dark" onClick={v.onCreateEvent}>Create draft</button>
+      <button type="button" className="btn btn-dark" onClick={v.onCreateEvent}>{v.drawerAction}</button>
       </div>
       </div>
       </div>

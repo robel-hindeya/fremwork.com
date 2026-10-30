@@ -4,9 +4,10 @@ import { Fragment } from 'react';
 import Link from 'next/link';
 import { FramSvg, type FramFace } from '@/components/fram/FramSvg';
 import '@/styles/events.css';
-import { useEffect, useRef, type ChangeEvent, type FormEvent, type KeyboardEvent, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent, type MouseEvent } from 'react';
 import { useFram } from '@/components/fram/useFram';
 import { useMergeState } from '@/components/fram/useMergeState';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import { api, type EventType, type PublicEvent, type PublicSettings, type Registration } from '@/lib/api';
 import { EMAIL_RE, formatWhen } from '@/lib/format';
 
@@ -51,7 +52,16 @@ function downloadIcs(e: PublicEvent) {
 
 /** Events · ported from Events.dc.html. Events come from the API; registrations post to it. */
 export function EventsScreen({ initialEvents, settings }: { initialEvents: PublicEvent[]; settings: PublicSettings | null }) {
-  const events = initialEvents;
+  // Admins see Edit and Delete on each card; deleted events disappear without a reload.
+  const [admin, setAdmin] = useState(false);
+  const [removed, setRemoved] = useState<string[]>([]);
+  const events = initialEvents.filter((e) => !removed.includes(e.id));
+  useEffect(() => {
+    getSupabaseBrowserClient().auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      api<{ isAdmin: boolean }>('/me', { auth: true }).then((me) => setAdmin(!!me.isAdmin)).catch(() => {});
+    });
+  }, []);
   const required = { ...(settings?.requiredFields || {}), name: true, email: true } as Record<string, boolean>;
   const [s, set, get] = useMergeState({
     filter: 'All', listFlip: false,
@@ -75,6 +85,16 @@ export function EventsScreen({ initialEvents, settings }: { initialEvents: Publi
   const card = (e: PublicEvent, i: number) => {
     const on = !!reg[e.id];
     return {
+      id: e.id, editHref: `/admin?edit=${e.id}`,
+      remove: async () => {
+        if (!window.confirm(`Delete "${e.title}"? This cannot be undone. Its registrations are deleted too.`)) return;
+        try {
+          await api(`/admin/events/${e.id}`, { method: 'DELETE', auth: true });
+          setRemoved((r) => [...r, e.id]);
+        } catch (err) {
+          window.alert((err as Error).message);
+        }
+      },
       type: e.type, title: e.title, desc: e.description, length: e.length,
       when: formatWhen(e.startsAt, e.whenLabel), where: e.location, tagBg: TAG_BG[e.type] || '#EDEDED',
       toggle: () => set({ regOpen: i, regErr: {}, regFormErr: '', calNote: false }),
@@ -137,6 +157,7 @@ export function EventsScreen({ initialEvents, settings }: { initialEvents: Publi
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const v: Record<string, any> = {
     ...fram,
+    isAdmin: admin,
     featured: events[0]
       ? card(events[0], 0)
       : { type: 'SOON', title: 'New events are on the way', when: 'Dates coming soon', where: 'Online', toggle: () => {}, pressed: 'false', btnLabel: 'Check back soon', btnBg: '#FFFFFF', btnColor: '#0A0A0A' },
@@ -212,6 +233,7 @@ export function EventsScreen({ initialEvents, settings }: { initialEvents: Publi
       <span style={{ fontSize: "26px", lineHeight: "1.15", letterSpacing: "-0.025em", fontWeight: "600" }}>{v.featured.title}</span>
       <span style={{ fontSize: "14px", color: "#3A3A38" }}>{v.featured.when} · {v.featured.where}</span>
       <div style={{ marginTop: "8px" }}><button type="button" className="reg" onClick={v.featured.toggle} aria-pressed={v.featured.pressed} style={{ fontFamily: "inherit", fontSize: "14px", fontWeight: "500", color: v.featured.btnColor, background: v.featured.btnBg, border: "1px solid #0A0A0A", borderRadius: "6px", padding: "10px 16px", cursor: "pointer" }}>{v.featured.btnLabel}</button></div>
+      {v.isAdmin && v.featured.id ? (<div style={{ display: "flex", gap: "8px", marginTop: "8px" }}><Link href={v.featured.editHref} className="reg" style={{ flex: 1, textAlign: "center", textDecoration: "none", fontSize: "13px", fontWeight: "500", color: "#0A0A0A", background: "#FFFFFF", border: "1px solid #E2E2DF", borderRadius: "6px", padding: "8px 12px" }}>Edit</Link><button type="button" className="reg" onClick={v.featured.remove} style={{ flex: 1, fontFamily: "inherit", fontSize: "13px", fontWeight: "500", color: "#B42318", background: "#FFFFFF", border: "1px solid #F3C7C3", borderRadius: "6px", padding: "8px 12px", cursor: "pointer" }}>Delete</button></div>) : null}
       </div>
       <div style={{ position: "relative", zIndex: "1", width: "38%", flex: "none" }}>
       <FramSvg f={v as FramFace} label="Fram, the Fremwork character, waving hello" className="fram-svg" svgRef={v.setFram} onMouseDown={v.onPoke} style={{ display: "block", width: "100%", height: "auto", overflow: "visible" }} />
@@ -246,6 +268,7 @@ export function EventsScreen({ initialEvents, settings }: { initialEvents: Publi
       <span style={{ color: "#8C8C8C" }}>{e.where}</span>
       </div>
       <button type="button" className="reg" onClick={e.toggle} aria-pressed={e.pressed} style={{ fontFamily: "inherit", fontSize: "14px", fontWeight: "500", color: e.btnColor, background: e.btnBg, border: "1px solid #0A0A0A", borderRadius: "6px", padding: "10px 16px", cursor: "pointer" }}>{e.btnLabel}</button>
+      {v.isAdmin && e.id ? (<div style={{ display: "flex", gap: "8px", marginTop: "8px" }}><Link href={e.editHref} className="reg" style={{ flex: 1, textAlign: "center", textDecoration: "none", fontSize: "13px", fontWeight: "500", color: "#0A0A0A", background: "#FFFFFF", border: "1px solid #E2E2DF", borderRadius: "6px", padding: "8px 12px" }}>Edit</Link><button type="button" className="reg" onClick={e.remove} style={{ flex: 1, fontFamily: "inherit", fontSize: "13px", fontWeight: "500", color: "#B42318", background: "#FFFFFF", border: "1px solid #F3C7C3", borderRadius: "6px", padding: "8px 12px", cursor: "pointer" }}>Delete</button></div>) : null}
       </article>
       </Fragment>))}
       </div>

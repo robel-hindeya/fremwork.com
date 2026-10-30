@@ -114,7 +114,10 @@ const routes: [string, RegExp, Handler][] = [
     const patch: Record<string, unknown> = {};
     if (b.published !== undefined) patch.published = b.published;
     if (b.title !== undefined) patch.title = b.title;
-    if (b.startsAt !== undefined) patch.starts_at = b.startsAt;
+    if (b.type !== undefined) patch.type = b.type;
+    if (b.description !== undefined) patch.description = b.description;
+    if (b.length !== undefined) patch.length_label = b.length || '60 min';
+    if (b.startsAt !== undefined) { patch.starts_at = b.startsAt; patch.when_label = null; }
     if (b.location !== undefined) patch.location = b.location;
     if (b.capacity !== undefined) patch.capacity = b.capacity;
     return toEvent(must(await db().from('events').update(patch).eq('id', m[1]).select('*, event_registrations(count)').single()));

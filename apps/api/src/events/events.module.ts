@@ -32,6 +32,7 @@ class CreateEventDto {
 
 class UpdateEventDto {
   @IsOptional() @IsBoolean() published?: boolean;
+  @IsOptional() @IsString() @MaxLength(40) length?: string;
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(200) title?: string;
   @IsOptional() @IsIn(TYPES) type?: string;
   @IsOptional() @IsString() @MaxLength(2000) description?: string;
@@ -130,7 +131,8 @@ export class EventsService {
     if (dto.title !== undefined) patch.title = dto.title.trim();
     if (dto.type !== undefined) patch.type = dto.type;
     if (dto.description !== undefined) patch.description = dto.description;
-    if (dto.startsAt !== undefined) patch.starts_at = dto.startsAt;
+    if (dto.startsAt !== undefined) { patch.starts_at = dto.startsAt; patch.when_label = null; }
+    if (dto.length !== undefined) patch.length_label = dto.length || '60 min';
     if (dto.location !== undefined) patch.location = dto.location;
     if (dto.capacity !== undefined) patch.capacity = dto.capacity;
     const row = SupabaseService.check(await this.db.from('events').update(patch).eq('id', id).select(EVENT_COLS).maybeSingle());
