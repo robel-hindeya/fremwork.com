@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { VisitTracker } from '@/components/VisitTracker';
 
 export const metadata: Metadata = {
   title: { default: 'Fremwork', template: '%s · Fremwork' },
@@ -20,7 +21,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <VisitTracker />
+      </body>
     </html>
   );
 }

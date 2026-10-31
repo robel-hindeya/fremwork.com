@@ -32,6 +32,7 @@
 .pg-admin .trow:hover{background:#FAFAF8}
 .pg-admin .wl{grid-template-columns:22px minmax(0,2.2fr) minmax(0,1.2fr) minmax(0,1.1fr) 90px 96px 96px}
 .pg-admin .rg{grid-template-columns:minmax(0,2fr) minmax(0,1.2fr) minmax(0,1.1fr) 80px minmax(0,1.1fr) minmax(0,1.6fr) 92px}
+.pg-admin .vs{grid-template-columns:minmax(0,2fr) minmax(0,1.3fr) minmax(0,1.4fr) 64px 110px}
 .pg-admin .mmeta{display:none}
 .pg-admin .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:500;white-space:nowrap}
 .pg-admin .dot{width:6px;height:6px;border-radius:50%}
@@ -71,6 +72,8 @@
 .pg-admin .wl .c-co,.pg-admin .wl .c-role,.pg-admin .wl .c-date,.pg-admin .wl .c-act{display:none}
 .pg-admin .rg{grid-template-columns:minmax(0,1fr) auto}
 .pg-admin .rg .c-co,.pg-admin .rg .c-role,.pg-admin .rg .c-size,.pg-admin .rg .c-heard,.pg-admin .rg .c-ev{display:none}
+.pg-admin .vs{grid-template-columns:minmax(0,1fr) auto}
+.pg-admin .vs .c-br,.pg-admin .vs .c-from,.pg-admin .vs .c-vis{display:none}
 .pg-admin .mmeta{display:block}
 .pg-admin .search{min-width:0;flex:1}
 .pg-admin .head-actions{width:100%}}

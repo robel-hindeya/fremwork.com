@@ -10,6 +10,7 @@ import { EventsModule } from './events/events.module';
 import { SettingsModule } from './settings/settings.module';
 import { TeamModule } from './team/team.module';
 import { OverviewModule } from './overview/overview.module';
+import { VisitorsModule } from './visitors/visitors.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { OverviewModule } from './overview/overview.module';
     EventsModule,
     TeamModule,
     OverviewModule,
+    VisitorsModule,
   ],
   controllers: [HealthController, MeController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

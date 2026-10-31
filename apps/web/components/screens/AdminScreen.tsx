@@ -18,6 +18,19 @@ interface Reg { id: number; eventId: string; name: string; email: string; compan
 interface Settings { acceptSignups: boolean; welcomeEmail: boolean; askCompany: boolean; alertInstant: boolean; alertDigest: boolean; notifyEmail: string; requiredFields: Record<string, boolean> }
 interface Overview { weeks: number[]; activity: { kind: string; text: string; at: string }[] }
 interface TeamMember { name: string; email: string; role: string }
+interface Visitor { id: number; email: string | null; ip: string | null; userAgent: string | null; referrer: string | null; firstPath: string | null; lastPath: string | null; visits: number; firstSeen: string; lastSeen: string }
+
+/** "Chrome · Windows" and "Desktop" from a user agent string. */
+function device(ua: string | null) {
+  const u = ua || '';
+  const browser = /Edg\//.test(u) ? 'Edge' : /OPR\/|Opera/.test(u) ? 'Opera' : /SamsungBrowser/.test(u) ? 'Samsung Internet'
+    : /Firefox\/|FxiOS/.test(u) ? 'Firefox' : /Chrome\/|CriOS/.test(u) ? 'Chrome' : /Safari\//.test(u) ? 'Safari' : 'Other browser';
+  const os = /Windows/.test(u) ? 'Windows' : /iPhone|iPad|iPod/.test(u) ? 'iOS' : /Android/.test(u) ? 'Android'
+    : /Mac OS X|Macintosh/.test(u) ? 'macOS' : /CrOS/.test(u) ? 'ChromeOS' : /Linux/.test(u) ? 'Linux' : 'Other';
+  const kind = /iPad|Tablet/.test(u) ? 'Tablet' : /Mobi|iPhone|Android/.test(u) ? 'Phone' : 'Desktop';
+  return { browser, os, kind };
+}
+const host = (url: string | null) => { try { return url ? new URL(url).hostname.replace(/^www\./, '') : ''; } catch { return ''; } };
 
 const ROLES = ['Business owner', 'Finance officer', 'Analyst', 'Accountant', 'Manager', 'Other'];
 const FORM_FIELDS = [
@@ -35,6 +48,7 @@ const TABS = [
   { id: 'waitlist', label: 'Waitlist', icon: 'M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1 M9.5 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M21 19v-1a4 4 0 0 0-3-3.9 M15.5 4.1a3 3 0 0 1 0 5.8' },
   { id: 'events', label: 'Events', icon: 'M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z M4 10h16 M8 3v4 M16 3v4' },
   { id: 'regs', label: 'Registrations', icon: 'M9 5h10 M9 12h10 M9 19h10 M4.5 5l1 1 2-2 M4.5 12l1 1 2-2 M4.5 19l1 1 2-2' },
+  { id: 'visitors', label: 'Visitors', icon: 'M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z' },
   { id: 'settings', label: 'Settings', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z' },
 ] as const;
 type Tab = (typeof TABS)[number]['id'];
@@ -43,6 +57,7 @@ const HEAD: Record<Tab, [string, string]> = {
   waitlist: ['Waitlist', 'Everyone who joined from the website. Invite them when you are ready.'],
   events: ['Events', 'Create, publish and track the events on your Events page.'],
   regs: ['Registrations', 'Everyone who registered for an event, with their answers.'],
+  visitors: ['Visitors', 'Everyone who opened the website. Each person counts once, so refreshing does not add to the total.'],
   settings: ['Settings', 'Waitlist, registration form, alerts and team.'],
 };
 const LABEL: Record<Status, 'Waiting' | 'Invited' | 'Active'> = { waiting: 'Waiting', invited: 'Invited', active: 'Active' };
@@ -74,7 +89,7 @@ export function AdminScreen() {
     tab: 'overview' as Tab, q: '', wlFilter: 'All', sel: {} as Record<number, boolean>, regEv: 'all',
     me: null as Me | null, denied: false, loading: true,
     wl: [] as WlEntry[], events: [] as AdminEvent[], regs: [] as Reg[], overview: { weeks: [], activity: [] } as Overview,
-    settings: DEFAULT_SETTINGS, team: [] as TeamMember[],
+    settings: DEFAULT_SETTINGS, team: [] as TeamMember[], visitors: [] as Visitor[],
     notifyEmail: '', inviteEmail: '', inviteErr: '', dirty: false,
     drawer: false, ne: {} as Record<string, string>, neErr: '', toast: '',
   });
@@ -100,6 +115,7 @@ export function AdminScreen() {
         api<TeamMember[]>('/admin/team', { auth: true }),
       ]);
       set({ me, overview, wl, events, regs, settings, team, notifyEmail: settings.notifyEmail || '', loading: false });
+      api<Visitor[]>('/admin/visitors', { auth: true }).then((visitors) => set({ visitors }), () => undefined);
       const editId = new URLSearchParams(window.location.search).get('edit');
       const toEdit = editId ? events.find((e) => e.id === editId) : undefined;
       if (toEdit) set({ tab: 'events', drawer: true, neErr: '', ne: editForm(toEdit) });
@@ -130,6 +146,8 @@ export function AdminScreen() {
     if (s.regEv !== 'all' && r.eventId !== s.regEv) return false;
     return !q || `${r.name} ${r.email} ${r.company ?? ''}`.toLowerCase().includes(q);
   });
+  const vq = s.visitors.filter((r) => !q || `${r.email ?? ''} ${r.ip ?? ''} ${r.userAgent ?? ''} ${r.referrer ?? ''} ${r.lastPath ?? ''}`.toLowerCase().includes(q));
+  const dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
   const selIds = Object.keys(s.sel).filter((k) => s.sel[+k]).map(Number);
 
   const invite = async (ids: number[]) => {
@@ -170,7 +188,7 @@ export function AdminScreen() {
   const v: Record<string, any> = {
     nav: TABS.map((t) => {
       const on = t.id === tab;
-      const count = t.id === 'waitlist' ? String(s.wl.length) : t.id === 'events' ? String(s.events.length) : t.id === 'regs' ? String(totalRegs) : '';
+      const count = t.id === 'waitlist' ? String(s.wl.length) : t.id === 'events' ? String(s.events.length) : t.id === 'regs' ? String(totalRegs) : t.id === 'visitors' ? String(s.visitors.length) : '';
       return {
         label: t.label, short: t.id === 'regs' ? 'Sign-ups' : t.label, icon: t.icon, go: go(t.id), count: s.loading ? '' : count,
         current: on ? 'page' : 'false', selected: on ? 'true' : 'false',
@@ -187,9 +205,9 @@ export function AdminScreen() {
     },
     crumb: 'ADMIN / ' + HEAD[tab][0].toUpperCase(),
     title: HEAD[tab][0], subtitle: HEAD[tab][1],
-    isOverview: tab === 'overview', isWaitlist: tab === 'waitlist', isEvents: tab === 'events', isRegs: tab === 'regs', isSettings: tab === 'settings',
-    showSearch: tab === 'waitlist' || tab === 'regs',
-    searchPh: tab === 'regs' ? 'Search attendees' : 'Search name, email, company',
+    isOverview: tab === 'overview', isWaitlist: tab === 'waitlist', isEvents: tab === 'events', isRegs: tab === 'regs', isVisitors: tab === 'visitors', isSettings: tab === 'settings',
+    showSearch: tab === 'waitlist' || tab === 'regs' || tab === 'visitors',
+    searchPh: tab === 'regs' ? 'Search attendees' : tab === 'visitors' ? 'Search email, IP, page' : 'Search name, email, company',
     q: s.q, onQ: (e: ChangeEvent<HTMLInputElement>) => set({ q: e.target.value }),
     showExport: tab === 'overview' || tab === 'waitlist' || tab === 'regs',
     showNewEvent: tab === 'events', showSave: tab === 'settings',
@@ -356,6 +374,27 @@ export function AdminScreen() {
             fail(err);
           }
         },
+      };
+    }),
+
+    // Visitors
+    vStats: [
+      { label: 'Unique visitors', value: dash(s.visitors.length), note: 'All time, one per person', dot: '#C6F432' },
+      { label: 'Signed in', value: dash(s.visitors.filter((r) => r.email).length), note: 'Matched by email', dot: '#3D5AFE' },
+      { label: 'Active today', value: dash(s.visitors.filter((r) => +new Date(r.lastSeen) > dayAgo).length), note: 'Last 24 hours', dot: '#F5A524' },
+      { label: 'New this week', value: dash(s.visitors.filter((r) => +new Date(r.firstSeen) > weekAgo).length), note: 'First visit in the last 7 days', dot: '#1FA971' },
+    ],
+    vSummary: `${vq.length} shown · ${vq.reduce((t, r) => t + r.visits, 0)} visits`,
+    vEmpty: !s.loading && vq.length === 0,
+    vRows: vq.map((r) => {
+      const d = device(r.userAgent);
+      const from = host(r.referrer);
+      return {
+        who: r.email || 'Anonymous visitor', ip: r.ip || 'IP unknown', ini: r.email ? initials(r.email.split('@')[0]) : '?',
+        avaBg: r.email ? AVA[r.id % AVA.length] : '#EDEDED',
+        browser: `${d.browser} · ${d.os}`, kind: d.kind,
+        from: from || 'Direct', page: r.firstPath || '/',
+        visits: r.visits, visitsLabel: r.visits === 1 ? "1 visit" : `${r.visits} visits`, seen: timeAgo(r.lastSeen), first: formatShortDate(r.firstSeen),
       };
     }),
 
@@ -634,6 +673,37 @@ export function AdminScreen() {
       </Fragment>))}
       {v.regEmpty ? (<>
       <div style={{ padding: "48px 20px", textAlign: "center", color: "#5E5E5E", fontSize: "14px" }}>No registrations here yet.</div>
+      </>) : null}
+      </div>
+      </>) : null}
+      {/* VISITORS */}
+      {v.isVisitors ? (<>
+      <div className="stats" style={{ marginBottom: "14px" }}>
+      {(v.vStats || []).map((st: any, st_i: number) => (<Fragment key={st_i}>
+      <div className="card" style={{ padding: "18px", display: "flex", flexDirection: "column", gap: "10px" }}>
+      <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "13px", color: "#5E5E5E" }}>{st.label}<span aria-hidden="true" style={{ width: "8px", height: "8px", borderRadius: "50%", background: st.dot }}></span></span>
+      <span style={{ fontSize: "34px", fontWeight: "600", letterSpacing: "-0.03em", lineHeight: "1" }}>{st.value}</span>
+      <span style={{ fontSize: "13px", color: "#5E5E5E" }}>{st.note}</span>
+      </div>
+      </Fragment>))}
+      </div>
+      <div style={{ fontSize: "13px", color: "#5E5E5E", marginBottom: "10px" }}>{v.vSummary}</div>
+      <div className="card" style={{ overflow: "hidden" }}>
+      <div className="thead vs"><span>VISITOR</span><span className="c-br">BROWSER</span><span className="c-from">CAME FROM</span><span className="c-vis" style={{ textAlign: "right" }}>VISITS</span><span style={{ textAlign: "right" }}>LAST SEEN</span></div>
+      {(v.vRows || []).map((r: any, r_i: number) => (<Fragment key={r_i}>
+      <div className="trow vs">
+      <div style={{ display: "flex", alignItems: "center", gap: "11px", minWidth: "0" }}>
+      <span className="ava" style={{ background: r.avaBg }}>{r.ini}</span>
+      <div style={{ minWidth: "0" }}><div className="ell" style={{ fontWeight: "500" }}>{r.who}</div><div className="ell" style={{ fontSize: "12px", color: "#5E5E5E", fontFamily: "'Geist Mono', monospace" }}>{r.ip}</div><div className="mmeta ell" style={{ fontSize: "12px", color: "#5E5E5E", marginTop: "2px" }}>{r.browser} · {r.kind} · {r.visitsLabel}</div></div>
+      </div>
+      <div className="c-br" style={{ minWidth: "0" }}><div className="ell">{r.browser}</div><div style={{ fontSize: "12px", color: "#5E5E5E" }}>{r.kind}</div></div>
+      <div className="c-from" style={{ minWidth: "0" }}><div className="ell">{r.from}</div><div className="ell" style={{ fontSize: "12px", color: "#5E5E5E" }}>Landed on {r.page}</div></div>
+      <span className="c-vis" style={{ textAlign: "right", fontFamily: "'Geist Mono', monospace" }}>{r.visits}</span>
+      <div style={{ textAlign: "right" }}><div style={{ fontSize: "13px" }}>{r.seen}</div><div style={{ fontSize: "12px", color: "#5E5E5E" }}>First {r.first}</div></div>
+      </div>
+      </Fragment>))}
+      {v.vEmpty ? (<>
+      <div style={{ padding: "48px 20px", textAlign: "center", color: "#5E5E5E", fontSize: "14px" }}>No visitors yet. They appear here as soon as someone opens the website.</div>
       </>) : null}
       </div>
       </>) : null}
