@@ -30,14 +30,13 @@ function device(ua: string | null) {
   const kind = /iPad|Tablet/.test(u) ? 'Tablet' : /Mobi|iPhone|Android/.test(u) ? 'Phone' : 'Desktop';
   return { browser, os, kind };
 }
-/** "🇪🇹 Ethiopia" from "ET". */
+/** "Ethiopia" from "ET". */
 function countryName(code: string | null) {
   if (!code || !/^[A-Z]{2}$/.test(code)) return 'Unknown';
-  const flag = String.fromCodePoint(...[...code].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
-  let name = code;
-  try { name = new Intl.DisplayNames(['en'], { type: 'region' }).of(code) || code; } catch { /* old browser */ }
-  return `${flag} ${name}`;
+  try { return new Intl.DisplayNames(['en'], { type: 'region' }).of(code) || code; } catch { return code; }
 }
+/** Flag image (emoji flags do not show on Windows). */
+const flagUrl = (code: string | null) => (code && /^[A-Z]{2}$/.test(code) ? `https://flagcdn.com/20x15/${code.toLowerCase()}.png` : '');
 /** How someone found the site: "Google search", "LinkedIn", "Direct" … */
 function sourceOf(referrer: string | null, utm: string | null) {
   const h = host(referrer);
@@ -79,7 +78,7 @@ const HEAD: Record<Tab, [string, string]> = {
   waitlist: ['Waitlist', 'Everyone who joined from the website. Invite them when you are ready.'],
   events: ['Events', 'Create, publish and track the events on your Events page.'],
   regs: ['Registrations', 'Everyone who registered for an event, with their answers.'],
-  visitors: ['Visitors', 'Everyone who opened the website. Each person counts once, so refreshing does not add to the total.'],
+  visitors: ['Visitors', 'Everyone who opened the website, signed in or not. Each person counts once, so refreshing does not add to the total. Your team is not counted.'],
   settings: ['Settings', 'Waitlist, registration form, alerts and team.'],
 };
 const LABEL: Record<Status, 'Waiting' | 'Invited' | 'Active'> = { waiting: 'Waiting', invited: 'Invited', active: 'Active' };
@@ -169,12 +168,12 @@ export function AdminScreen() {
     return !q || `${r.name} ${r.email} ${r.company ?? ''}`.toLowerCase().includes(q);
   });
   const vq = s.visitors.filter((r) => !q || `${r.email ?? ''} ${r.ip ?? ''} ${r.userAgent ?? ''} ${r.referrer ?? ''} ${r.lastPath ?? ''} ${countryName(r.country)} ${r.city ?? ''} ${sourceOf(r.referrer, r.source)}`.toLowerCase().includes(q));
-  const tally = (keys: string[]) => {
+  const tally = (keys: string[], flags?: Record<string, string>) => {
     const m: Record<string, number> = {};
     keys.forEach((k) => { m[k] = (m[k] || 0) + 1; });
     const rows = Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 6);
     const top = Math.max(1, ...rows.map((r) => r[1]));
-    return rows.map(([label, n]) => ({ label, n, w: Math.round((n / top) * 100) + '%' }));
+    return rows.map(([label, n]) => ({ label, n, flag: flags?.[label] || '', w: Math.round((n / top) * 100) + '%' }));
   };
   const dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
   const selIds = Object.keys(s.sel).filter((k) => s.sel[+k]).map(Number);
@@ -413,7 +412,7 @@ export function AdminScreen() {
       { label: 'Active today', value: dash(s.visitors.filter((r) => +new Date(r.lastSeen) > dayAgo).length), note: 'Last 24 hours', dot: '#F5A524' },
       { label: 'New this week', value: dash(s.visitors.filter((r) => +new Date(r.firstSeen) > weekAgo).length), note: 'First visit in the last 7 days', dot: '#1FA971' },
     ],
-    vCountries: tally(vq.map((r) => countryName(r.country))),
+    vCountries: tally(vq.map((r) => countryName(r.country)), Object.fromEntries(vq.map((r) => [countryName(r.country), flagUrl(r.country)]))),
     vSources: tally(vq.map((r) => sourceOf(r.referrer, r.source))),
     vSummary: `${vq.length} shown · ${vq.reduce((t, r) => t + r.visits, 0)} visits`,
     vEmpty: !s.loading && vq.length === 0,
@@ -425,7 +424,7 @@ export function AdminScreen() {
         avaBg: r.email ? AVA[r.id % AVA.length] : '#EDEDED',
         browser: `${d.browser} · ${d.os}`, kind: d.kind,
         from, page: r.firstPath || '/',
-        country: countryName(r.country), place: [r.city, r.region && !/^\d+$/.test(r.region) ? r.region : null].filter(Boolean).join(', ') || '—',
+        country: countryName(r.country), flag: flagUrl(r.country), place: [r.city, r.region && !/^\d+$/.test(r.region) ? r.region : null].filter(Boolean).join(', ') || '—',
         visits: r.visits, visitsLabel: r.visits === 1 ? "1 visit" : `${r.visits} visits`, seen: timeAgo(r.lastSeen), first: formatShortDate(r.firstSeen),
       };
     }),
@@ -726,7 +725,7 @@ export function AdminScreen() {
       <div style={{ display: "flex", flexDirection: "column", gap: "13px" }}>
       {b.rows.map((r: any, r_i: number) => (<Fragment key={r_i}>
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,150px) minmax(0,1fr) 32px", gap: "12px", alignItems: "center", fontSize: "13px" }}>
-      <span className="ell">{r.label}</span><div className="hb"><i style={{ width: r.w }}></i></div><span style={{ textAlign: "right", fontFamily: "'Geist Mono', monospace" }}>{r.n}</span>
+      <span className="ell" style={{ display: "flex", alignItems: "center", gap: "7px" }}>{r.flag ? (<img src={r.flag} width={20} height={15} alt="" style={{ borderRadius: "2px", flex: "none", boxShadow: "0 0 0 1px rgba(10,10,10,0.08)" }} />) : null}<span className="ell">{r.label}</span></span><div className="hb"><i style={{ width: r.w }}></i></div><span style={{ textAlign: "right", fontFamily: "'Geist Mono', monospace" }}>{r.n}</span>
       </div>
       </Fragment>))}
       {b.rows.length ? null : (<span style={{ fontSize: "13px", color: "#5E5E5E" }}>No visitors yet.</span>)}
@@ -743,7 +742,7 @@ export function AdminScreen() {
       <span className="ava" style={{ background: r.avaBg }}>{r.ini}</span>
       <div style={{ minWidth: "0" }}><div className="ell" style={{ fontWeight: "500" }}>{r.who}</div><div className="ell" style={{ fontSize: "12px", color: "#5E5E5E", fontFamily: "'Geist Mono', monospace" }}>{r.ip}</div><div className="mmeta ell" style={{ fontSize: "12px", color: "#5E5E5E", marginTop: "2px" }}>{r.country} · {r.from} · {r.visitsLabel}</div></div>
       </div>
-      <div className="c-loc" style={{ minWidth: "0" }}><div className="ell">{r.country}</div><div className="ell" style={{ fontSize: "12px", color: "#5E5E5E" }}>{r.place}</div></div>
+      <div className="c-loc" style={{ minWidth: "0" }}><div className="ell" style={{ display: "flex", alignItems: "center", gap: "7px" }}>{r.flag ? (<img src={r.flag} width={20} height={15} alt="" style={{ borderRadius: "2px", flex: "none", boxShadow: "0 0 0 1px rgba(10,10,10,0.08)" }} />) : null}<span className="ell">{r.country}</span></div><div className="ell" style={{ fontSize: "12px", color: "#5E5E5E" }}>{r.place}</div></div>
       <div className="c-br" style={{ minWidth: "0" }}><div className="ell">{r.browser}</div><div style={{ fontSize: "12px", color: "#5E5E5E" }}>{r.kind}</div></div>
       <div className="c-from" style={{ minWidth: "0" }}><div className="ell">{r.from}</div><div className="ell" style={{ fontSize: "12px", color: "#5E5E5E" }}>Landed on {r.page}</div></div>
       <span className="c-vis" style={{ textAlign: "right", fontFamily: "'Geist Mono', monospace" }}>{r.visits}</span>

@@ -17,7 +17,7 @@ export class VisitorsService {
 
   async list() {
     const rows = SupabaseService.check(
-      await this.supabase.db.from('site_visitors').select('*').order('last_seen', { ascending: false }).limit(2000),
+      await this.supabase.db.from('site_visitors').select('*').eq('is_team', false).order('last_seen', { ascending: false }).limit(2000),
     ) as any[];
     return rows.map(toVisitor);
   }

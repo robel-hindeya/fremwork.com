@@ -139,7 +139,7 @@ const routes: [string, RegExp, Handler][] = [
       ...regs.map((r: any) => [r.name, r.email, r.company, r.role, r.companySize, r.heardFrom, title[r.eventId], r.checkedIn ? 'Yes' : 'No'])]);
   }],
   ['PATCH', /^\/admin\/registrations\/(\d+)$/, async (m, b) => toReg(must(await db().from('event_registrations').update({ checked_in: b.checkedIn }).eq('id', Number(m[1])).select('*').single()))],
-  ['GET', /^\/admin\/visitors$/, async () => must(await db().from('site_visitors').select('*').order('last_seen', { ascending: false }).limit(2000)).map(toVisitor)],
+  ['GET', /^\/admin\/visitors$/, async () => must(await db().from('site_visitors').select('*').eq('is_team', false).order('last_seen', { ascending: false }).limit(2000)).map(toVisitor)],
   ['GET', /^\/admin\/settings$/, async () => toSettings(must(await db().from('app_settings').select('*').eq('id', 1).single()))],
   ['PUT', /^\/admin\/settings$/, async (_m, b) => {
     const keys = ['name', 'email', 'company', 'role', 'size', 'heard'];
