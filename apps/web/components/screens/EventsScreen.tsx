@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment } from 'react';
+import { identifyVisitor } from '@/components/VisitTracker';
 import Link from 'next/link';
 import { FramSvg, type FramFace } from '@/components/fram/FramSvg';
 import '@/styles/events.css';
@@ -134,6 +135,7 @@ export function EventsScreen({ initialEvents, settings }: { initialEvents: Publi
       const r = await api<Registration>(`/events/${ev.id}/registrations`, { method: 'POST', body: answers });
       const next = { ...get().reg, [ev.id]: { ...r, answers } };
       saveRegs(next);
+      if (answers.email) identifyVisitor(answers.email);
       set({ reg: next, regLoading: false, regSuccess: true });
       clearTimeout(okT.current);
       okT.current = window.setTimeout(() => set({ regSuccess: false, regOpen: -1 }), 2000);

@@ -19,6 +19,15 @@ function browserId(): string {
   return id;
 }
 
+/** Puts a name on this browser's visitor after a waitlist sign-up or event registration. */
+export function identifyVisitor(email: string) {
+  try {
+    getSupabaseBrowserClient()
+      .rpc('identify_visitor', { p_browser_id: browserId(), p_email: email })
+      .then(() => undefined, () => undefined);
+  } catch { /* never block the form */ }
+}
+
 /**
  * Records the visit for Admin › Visitors. The database matches the person by
  * signed-in email, then this browser id, so refreshes never add anyone.

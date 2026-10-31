@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment } from 'react';
+import { identifyVisitor } from '@/components/VisitTracker';
 import Link from 'next/link';
 import { FramSvg, type FramFace } from '@/components/fram/FramSvg';
 import '@/styles/waitlist.css';
@@ -55,6 +56,7 @@ export function WaitlistScreen() {
         });
         if (error) throw new Error(error.message);
       }
+      identifyVisitor(em);
       set({ loading: false, done: true });
     } catch (err) {
       set({ loading: false, formErr: (err as Error).message });

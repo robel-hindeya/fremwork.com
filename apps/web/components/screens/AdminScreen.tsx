@@ -18,7 +18,7 @@ interface Reg { id: number; eventId: string; name: string; email: string; compan
 interface Settings { acceptSignups: boolean; welcomeEmail: boolean; askCompany: boolean; alertInstant: boolean; alertDigest: boolean; notifyEmail: string; requiredFields: Record<string, boolean> }
 interface Overview { weeks: number[]; activity: { kind: string; text: string; at: string }[] }
 interface TeamMember { name: string; email: string; role: string }
-interface Visitor { id: number; email: string | null; ip: string | null; userAgent: string | null; referrer: string | null; firstPath: string | null; lastPath: string | null; visits: number; firstSeen: string; lastSeen: string; country: string | null; region: string | null; city: string | null; source: string | null }
+interface Visitor { id: number; name: string | null; email: string | null; ip: string | null; userAgent: string | null; referrer: string | null; firstPath: string | null; lastPath: string | null; visits: number; firstSeen: string; lastSeen: string; country: string | null; region: string | null; city: string | null; source: string | null }
 
 /** "Chrome · Windows" and "Desktop" from a user agent string. */
 function device(ua: string | null) {
@@ -167,7 +167,7 @@ export function AdminScreen() {
     if (s.regEv !== 'all' && r.eventId !== s.regEv) return false;
     return !q || `${r.name} ${r.email} ${r.company ?? ''}`.toLowerCase().includes(q);
   });
-  const vq = s.visitors.filter((r) => !q || `${r.email ?? ''} ${r.ip ?? ''} ${r.userAgent ?? ''} ${r.referrer ?? ''} ${r.lastPath ?? ''} ${countryName(r.country)} ${r.city ?? ''} ${sourceOf(r.referrer, r.source)}`.toLowerCase().includes(q));
+  const vq = s.visitors.filter((r) => !q || `${r.name ?? ''} ${r.email ?? ''} ${r.ip ?? ''} ${r.userAgent ?? ''} ${r.referrer ?? ''} ${r.lastPath ?? ''} ${countryName(r.country)} ${r.city ?? ''} ${sourceOf(r.referrer, r.source)}`.toLowerCase().includes(q));
   const tally = (keys: string[], flags?: Record<string, string>) => {
     const m: Record<string, number> = {};
     keys.forEach((k) => { m[k] = (m[k] || 0) + 1; });
@@ -235,7 +235,7 @@ export function AdminScreen() {
     title: HEAD[tab][0], subtitle: HEAD[tab][1],
     isOverview: tab === 'overview', isWaitlist: tab === 'waitlist', isEvents: tab === 'events', isRegs: tab === 'regs', isVisitors: tab === 'visitors', isSettings: tab === 'settings',
     showSearch: tab === 'waitlist' || tab === 'regs' || tab === 'visitors',
-    searchPh: tab === 'regs' ? 'Search attendees' : tab === 'visitors' ? 'Search email, IP, country' : 'Search name, email, company',
+    searchPh: tab === 'regs' ? 'Search attendees' : tab === 'visitors' ? 'Search name, email, IP, country' : 'Search name, email, company',
     q: s.q, onQ: (e: ChangeEvent<HTMLInputElement>) => set({ q: e.target.value }),
     showExport: tab === 'overview' || tab === 'waitlist' || tab === 'regs',
     showNewEvent: tab === 'events', showSave: tab === 'settings',
@@ -408,7 +408,7 @@ export function AdminScreen() {
     // Visitors
     vStats: [
       { label: 'Unique visitors', value: dash(s.visitors.length), note: 'All time, one per person', dot: '#C6F432' },
-      { label: 'Signed in', value: dash(s.visitors.filter((r) => r.email).length), note: 'Matched by email', dot: '#3D5AFE' },
+      { label: 'Known by name', value: dash(s.visitors.filter((r) => r.name || r.email).length), note: 'Joined the waitlist, registered or signed in', dot: '#3D5AFE' },
       { label: 'Active today', value: dash(s.visitors.filter((r) => +new Date(r.lastSeen) > dayAgo).length), note: 'Last 24 hours', dot: '#F5A524' },
       { label: 'New this week', value: dash(s.visitors.filter((r) => +new Date(r.firstSeen) > weekAgo).length), note: 'First visit in the last 7 days', dot: '#1FA971' },
     ],
@@ -420,8 +420,9 @@ export function AdminScreen() {
       const d = device(r.userAgent);
       const from = sourceOf(r.referrer, r.source);
       return {
-        who: r.email || 'Anonymous visitor', ip: r.ip || 'IP unknown', ini: r.email ? initials(r.email.split('@')[0]) : '?',
-        avaBg: r.email ? AVA[r.id % AVA.length] : '#EDEDED',
+        who: r.name || r.email || 'Anonymous visitor', ip: r.ip || 'IP unknown', sub: r.name && r.email ? r.email : '',
+        ini: r.name ? initials(r.name) : r.email ? initials(r.email.split('@')[0]) : '?',
+        avaBg: r.name || r.email ? AVA[r.id % AVA.length] : '#EDEDED',
         browser: `${d.browser} · ${d.os}`, kind: d.kind,
         from, page: r.firstPath || '/',
         country: countryName(r.country), flag: flagUrl(r.country), place: [r.city, r.region && !/^\d+$/.test(r.region) ? r.region : null].filter(Boolean).join(', ') || '—',
@@ -740,7 +741,7 @@ export function AdminScreen() {
       <div className="trow vs">
       <div style={{ display: "flex", alignItems: "center", gap: "11px", minWidth: "0" }}>
       <span className="ava" style={{ background: r.avaBg }}>{r.ini}</span>
-      <div style={{ minWidth: "0" }}><div className="ell" style={{ fontWeight: "500" }}>{r.who}</div><div className="ell" style={{ fontSize: "12px", color: "#5E5E5E", fontFamily: "'Geist Mono', monospace" }}>{r.ip}</div><div className="mmeta ell" style={{ fontSize: "12px", color: "#5E5E5E", marginTop: "2px" }}>{r.country} · {r.from} · {r.visitsLabel}</div></div>
+      <div style={{ minWidth: "0" }}><div className="ell" style={{ fontWeight: "500" }}>{r.who}</div>{r.sub ? (<div className="ell" style={{ fontSize: "12px", color: "#3A3A38" }}>{r.sub}</div>) : null}<div className="ell" style={{ fontSize: "12px", color: "#5E5E5E", fontFamily: "'Geist Mono', monospace" }}>{r.ip}</div><div className="mmeta ell" style={{ fontSize: "12px", color: "#5E5E5E", marginTop: "2px" }}>{r.country} · {r.from} · {r.visitsLabel}</div></div>
       </div>
       <div className="c-loc" style={{ minWidth: "0" }}><div className="ell" style={{ display: "flex", alignItems: "center", gap: "7px" }}>{r.flag ? (<img src={r.flag} width={20} height={15} alt="" style={{ borderRadius: "2px", flex: "none", boxShadow: "0 0 0 1px rgba(10,10,10,0.08)" }} />) : null}<span className="ell">{r.country}</span></div><div className="ell" style={{ fontSize: "12px", color: "#5E5E5E" }}>{r.place}</div></div>
       <div className="c-br" style={{ minWidth: "0" }}><div className="ell">{r.browser}</div><div style={{ fontSize: "12px", color: "#5E5E5E" }}>{r.kind}</div></div>
