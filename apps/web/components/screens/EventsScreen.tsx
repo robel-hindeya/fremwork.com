@@ -241,7 +241,7 @@ export function EventsScreen({ initialEvents, settings }: { initialEvents: Publi
       <div style={{ maxWidth: "1120px", margin: "0 auto", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "40px 56px" }}>
       <div style={{ flex: "1 1 420px", minWidth: "0" }}>
       <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: "11px", letterSpacing: "0.08em", fontWeight: "500", color: "#0A0A0A", background: "#C6F432", padding: "5px 12px", borderRadius: "999px" }}>EVENTS</span>
-      <h1 style={{ margin: "22px 0 0", fontSize: "clamp(40px, 5.6vw, 72px)", lineHeight: "1.02", letterSpacing: "-0.045em", fontWeight: "600" }}>Learn finance<br />out loud.</h1>
+      <h1 style={{ margin: "22px 0 0", fontSize: "clamp(40px, 5.6vw, 72px)", lineHeight: "1.02", letterSpacing: "-0.045em", fontWeight: "600" }}>Run your finance<br />with AI.</h1>
       <p style={{ margin: "20px 0 0", maxWidth: "440px", fontSize: "18px", lineHeight: "28px", color: "#5E5E5E" }}>Live demos, workshops and meetups for business owners and finance teams. Free to join, with time for your questions.</p>
       </div>
       <div style={{ flex: "1 1 440px", minWidth: "0", position: "relative", borderRadius: "20px", overflow: "hidden", background: "#F1F1EC", border: "1px solid #E6E6E3", padding: "28px", boxSizing: "border-box", display: "flex", gap: "20px", alignItems: "flex-end" }}>
