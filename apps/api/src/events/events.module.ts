@@ -6,6 +6,8 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { IsBoolean, IsDateString, IsEmail, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 import { SupabaseService } from '../supabase/supabase.service';
 import { SettingsModule, SettingsService } from '../settings/settings.module';
+import { EmailModule } from '../email/email.module';
+import { EmailService } from '../email/email.service';
 import { AdminOnly } from '../auth/types';
 import { toCsv } from '../common/csv';
 
@@ -60,7 +62,11 @@ const REG_COLS = 'id, event_id, name, email, company, role, company_size, heard_
 
 @Injectable()
 export class EventsService {
-  constructor(private readonly supabase: SupabaseService, private readonly settings: SettingsService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly settings: SettingsService,
+    private readonly emailService: EmailService,
+  ) {}
 
   private get db() {
     return this.supabase.db;
@@ -100,6 +106,17 @@ export class EventsService {
     if (error?.code === '23505') throw new ConflictException('This email is already registered for this event.');
     if (error?.code === 'P0001') throw new ConflictException(error.message); // capacity trigger
     SupabaseService.check({ data, error });
+
+    const dates = ev.whenLabel || (ev.startsAt ? new Date(ev.startsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Upcoming');
+    this.emailService
+      .sendRegistrationEmail({
+        to: dto.email.trim(),
+        name: dto.name.trim(),
+        dates,
+        title: ev.title,
+      })
+      .catch(() => {});
+
     return { id: data!.id, eventId: data!.event_id, cancelToken: data!.cancel_token };
   }
 
@@ -244,5 +261,5 @@ export class EventsController {
   }
 }
 
-@Module({ imports: [SettingsModule], controllers: [EventsController], providers: [EventsService], exports: [EventsService] })
+@Module({ imports: [SettingsModule, EmailModule], controllers: [EventsController], providers: [EventsService], exports: [EventsService] })
 export class EventsModule {}

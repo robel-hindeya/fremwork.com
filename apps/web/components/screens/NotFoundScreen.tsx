@@ -34,7 +34,7 @@ export function NotFoundScreen() {
       <Link href="/waitlist" className="sso" style={{ textDecoration: "none", fontSize: "15px", fontWeight: "500", color: "#0A0A0A", background: "#FFFFFF", border: "1px solid #E2E2DF", borderRadius: "6px", padding: "12px 22px" }}>Join the waitlist</Link>
       </div>
       </main>
-      <footer style={{ position: "relative", zIndex: "1", textAlign: "center", padding: "0 20px 28px", fontSize: "12px", color: "#8C8C8C" }}>Lost a link from us? Tell us at <a href="#contact" className="lnk" style={{ color: "#5E5E5E" }}>[YOUR SUPPORT EMAIL]</a>.</footer>
+      <footer style={{ position: "relative", zIndex: "1", textAlign: "center", padding: "0 20px 28px", fontSize: "12px", color: "#8C8C8C" }}>Lost a link from us? Tell us at <a href="mailto:support@fremwork.com" className="lnk" style={{ color: "#5E5E5E" }}>support@fremwork.com</a>.</footer>
       </div>
       </div>
   );

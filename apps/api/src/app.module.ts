@@ -11,6 +11,7 @@ import { SettingsModule } from './settings/settings.module';
 import { TeamModule } from './team/team.module';
 import { OverviewModule } from './overview/overview.module';
 import { VisitorsModule } from './visitors/visitors.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { VisitorsModule } from './visitors/visitors.module';
     // Public forms (waitlist, registrations) are rate limited: 30 requests a minute per IP.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]),
     SupabaseModule,
+    EmailModule,
     SettingsModule,
     WaitlistModule,
     EventsModule,

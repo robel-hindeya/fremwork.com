@@ -4,6 +4,8 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { ArrayMaxSize, ArrayNotEmpty, IsArray, IsEmail, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { SupabaseService } from '../supabase/supabase.service';
 import { SettingsModule, SettingsService } from '../settings/settings.module';
+import { EmailModule } from '../email/email.module';
+import { EmailService } from '../email/email.service';
 import { AdminOnly } from '../auth/types';
 import { toCsv } from '../common/csv';
 
@@ -26,7 +28,12 @@ const toEntry = (r: Row) => ({ id: r.id, name: r.name, email: r.email, company: 
 @Injectable()
 export class WaitlistService {
   private readonly log = new Logger('Waitlist');
-  constructor(private readonly supabase: SupabaseService, private readonly settings: SettingsService, private readonly config: ConfigService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly settings: SettingsService,
+    private readonly config: ConfigService,
+    private readonly emailService: EmailService,
+  ) {}
 
   async join(dto: JoinWaitlistDto) {
     const s = await this.settings.get();
@@ -39,8 +46,25 @@ export class WaitlistService {
     });
     // Already on the list: answer the same way so the form does not reveal who signed up.
     if (error && error.code !== '23505') SupabaseService.check({ data: null, error });
-    if (!error && s.welcomeEmail) this.log.log(`TODO send welcome email to ${dto.email} (connect an email provider)`);
-    if (!error && s.alertInstant && s.notifyEmail) this.log.log(`TODO alert ${s.notifyEmail}: ${dto.name} joined`);
+    if (!error && s.welcomeEmail) {
+      this.emailService
+        .sendRegistrationEmail({
+          to: dto.email.trim(),
+          name: dto.name.trim(),
+          dates: 'Upcoming',
+          title: 'Fremwork Waitlist',
+        })
+        .catch(() => {});
+    }
+    if (!error && s.alertInstant && s.notifyEmail) {
+      this.emailService
+        .sendAlertEmail({
+          to: s.notifyEmail,
+          subject: `New waitlist signup: ${dto.name}`,
+          text: `${dto.name} (${dto.email}) joined the waitlist.`,
+        })
+        .catch(() => {});
+    }
     return { ok: true };
   }
 
@@ -133,5 +157,5 @@ export class WaitlistController {
   }
 }
 
-@Module({ imports: [SettingsModule], controllers: [WaitlistController], providers: [WaitlistService], exports: [WaitlistService] })
+@Module({ imports: [SettingsModule, EmailModule], controllers: [WaitlistController], providers: [WaitlistService], exports: [WaitlistService] })
 export class WaitlistModule {}
