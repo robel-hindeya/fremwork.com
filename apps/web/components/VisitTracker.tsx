@@ -21,7 +21,7 @@ function browserId(): string {
 
 /**
  * Records the visit for Admin › Visitors. The database matches the person by
- * signed-in email, then this browser id, then IP, so refreshes never add anyone.
+ * signed-in email, then this browser id, so refreshes never add anyone.
  */
 export function VisitTracker() {
   const path = usePathname();
