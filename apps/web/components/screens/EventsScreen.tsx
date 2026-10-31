@@ -12,6 +12,8 @@ import { api, type EventType, type PublicEvent, type PublicSettings, type Regist
 import { EMAIL_RE, formatWhen } from '@/lib/format';
 
 // Registration questions. Two kinds: 'text' (also 'email') for typed answers, 'select' for a dropdown.
+const TELEGRAM_URL = 'https://t.me/fremwork';
+const TG_KEY = 'fw_tg_joined';
 // Which ones are required comes from Admin › Settings (name and email always are).
 const FORM_FIELDS = [
   { id: 'name', label: 'Full name', type: 'text', placeholder: 'Andrio John', auto: 'name' },
@@ -65,13 +67,18 @@ export function EventsScreen({ initialEvents, settings }: { initialEvents: Publi
   const required = { ...(settings?.requiredFields || {}), name: true, email: true } as Record<string, boolean>;
   const [s, set, get] = useMergeState({
     filter: 'All', listFlip: false,
-    regOpen: -1, regSuccess: false, regLoading: false, regFormErr: '', calNote: false,
+    regOpen: -1, regSuccess: false, regLoading: false, regFormErr: '', calNote: false, tgJoined: false, tgErr: false,
     fv: {} as Record<string, string>, regErr: {} as Record<string, string>,
     reg: {} as Record<string, Registration>,
   });
   const okT = useRef(0);
 
-  useEffect(() => { set({ reg: loadRegs() }); return () => clearTimeout(okT.current); }, [set]);
+  useEffect(() => {
+    let tgJoined = false;
+    try { tgJoined = localStorage.getItem(TG_KEY) === '1'; } catch { /* storage blocked */ }
+    set({ reg: loadRegs(), tgJoined });
+    return () => clearTimeout(okT.current);
+  }, [set]);
   useEffect(() => {
     if (s.regOpen < 0) return;
     const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') set({ regOpen: -1 }); };
@@ -115,7 +122,10 @@ export function EventsScreen({ initialEvents, settings }: { initialEvents: Publi
       if (required[f.id] && !val) { errs[f.id] = f.type === 'select' ? 'Choose an option.' : 'This field is required.'; bad = true; }
       else if (f.type === 'email' && val && !EMAIL_RE.test(val)) { errs[f.id] = 'Enter a valid email, like you@company.com.'; bad = true; }
     });
-    if (bad) return set({ regErr: errs, regFormErr: 'Please fill in the required fields to register.' });
+    if (bad || !st.tgJoined) {
+      return set({ regErr: errs, tgErr: !st.tgJoined,
+        regFormErr: bad ? 'Please fill in the required fields to register.' : 'Join our Telegram channel to finish registering.' });
+    }
     set({ regLoading: true, regFormErr: '' });
     try {
       const answers: Record<string, string> = Object.fromEntries(
@@ -178,6 +188,14 @@ export function EventsScreen({ initialEvents, settings }: { initialEvents: Publi
     regTicket: isReg && !s.regSuccess,
     regLoading: s.regLoading,
     regBtn: s.regLoading ? 'Registering…' : 'Register',
+    tgUrl: TELEGRAM_URL,
+    tgJoined: s.tgJoined,
+    tgBorder: s.tgErr ? '#B42318' : s.tgJoined ? '#1FA971' : '#E2E2DF',
+    tgErr: s.tgErr && !s.tgJoined,
+    onTgJoin: () => {
+      try { localStorage.setItem(TG_KEY, '1'); } catch { /* storage blocked */ }
+      set({ tgJoined: true, tgErr: false, regFormErr: '' });
+    },
     regFields: FORM_FIELDS.map((f) => {
       const val = s.fv[f.id] || '';
       const err = s.regErr[f.id] || '';
@@ -328,6 +346,15 @@ export function EventsScreen({ initialEvents, settings }: { initialEvents: Publi
       {f.err ? (<><span style={{ fontSize: "12px", color: "#B42318" }}>{f.err}</span></>) : null}
       </div>
       </Fragment>))}
+      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <span id="reg-tg-label" style={{ fontSize: "13px", fontWeight: "500", color: "#0A0A0A" }}>Join our Telegram<span style={{ color: "#B42318" }}> *</span></span>
+      <div role="group" aria-labelledby="reg-tg-label" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", border: `1px solid ${v.tgBorder}`, borderRadius: "10px", padding: "12px 13px", background: v.tgJoined ? "#1FA9710D" : "#FFFFFF" }}>
+      <span aria-hidden="true" style={{ width: "34px", height: "34px", flex: "none", borderRadius: "50%", background: "#229ED9", display: "flex", alignItems: "center", justifyContent: "center" }}><svg width="18" height="18" viewBox="0 0 24 24"><path d="M21.5 4.3 2.9 11.5c-1.3.5-1.3 1.2-.2 1.6l4.8 1.5 1.8 5.6c.2.6.4.8.9.8.4 0 .6-.2.9-.5l2.3-2.2 4.7 3.5c.9.5 1.5.2 1.7-.8l3.1-14.6c.3-1.3-.5-1.9-1.4-1.5ZM9.3 14.5l-.4 4.1-1.6-5 9.9-6.2c.5-.3.9-.1.5.2l-8.4 6.9Z" fill="#FFFFFF"></path></svg></span>
+      <span style={{ flex: "1", minWidth: "160px", fontSize: "13px", lineHeight: "19px", color: "#3A3A38" }}>{v.tgJoined ? "Thanks for joining. Event updates and the join link are shared there." : "Event updates and the join link are shared in our Telegram channel. Join it to register."}</span>
+      {v.tgJoined ? (<span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: "600", color: "#137A50" }}><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 L10 17 L19 7.5" fill="none" stroke="#137A50" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"></path></svg>Joined</span>) : (<a href={v.tgUrl} target="_blank" rel="noopener noreferrer" onClick={v.onTgJoin} style={{ display: "inline-flex", alignItems: "center", gap: "8px", textDecoration: "none", fontSize: "14px", fontWeight: "500", color: "#FFFFFF", background: "#229ED9", borderRadius: "999px", padding: "9px 16px", whiteSpace: "nowrap" }}>Join Telegram</a>)}
+      </div>
+      {v.tgErr ? (<span style={{ fontSize: "12px", color: "#B42318" }}>Tap Join Telegram first.</span>) : null}
+      </div>
       {v.regFormErr ? (<><p role="alert" style={{ margin: "0", fontSize: "13px", color: "#B42318", background: "#FEF3F2", borderRadius: "8px", padding: "8px 12px" }}>{v.regFormErr}</p></>) : null}
       <button type="button" onClick={v.onRegSubmit} className="reg-go" style={{ marginTop: "4px", width: "100%", minHeight: "46px", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontFamily: "inherit", fontSize: "15px", fontWeight: "500", color: "#FFFFFF", background: "#0A0A0A", border: "0", borderRadius: "10px", cursor: "pointer" }}>
       {v.regLoading ? (<><span className="spin" aria-hidden="true" style={{ width: "15px", height: "15px", borderRadius: "50%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#FFFFFF" }}></span></>) : null}
