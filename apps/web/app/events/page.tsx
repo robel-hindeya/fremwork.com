@@ -5,7 +5,17 @@ import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 const API = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
 
-export const metadata: Metadata = { title: 'Events' };
+export const metadata: Metadata = {
+  title: 'Events & Vibe Coding Training',
+  description:
+    'Join Fremwork live events, interactive workshops, and the 3-Day Vibe Coding Training. Learn to build and automate finance workflows with AI.',
+  openGraph: {
+    title: 'Events & Vibe Coding Training · Fremwork',
+    description:
+      'Join Fremwork live events, interactive workshops, and the 3-Day Vibe Coding Training. Learn to build and automate finance workflows with AI.',
+    url: 'https://www.fremwork.com/events',
+  },
+};
 export const revalidate = 60;
 
 async function get<T>(path: string, rpc: string): Promise<T | null> {
