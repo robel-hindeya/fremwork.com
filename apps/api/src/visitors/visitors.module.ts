@@ -7,6 +7,7 @@ import { AdminOnly } from '../auth/types';
 const toVisitor = (r: any) => ({
   id: r.id, email: r.email, ip: r.ip, userAgent: r.user_agent, referrer: r.referrer, firstPath: r.first_path, lastPath: r.last_path,
   visits: r.visits, firstSeen: r.first_seen, lastSeen: r.last_seen,
+  country: r.country, region: r.region, city: r.city, source: r.source,
 });
 
 /** Unique website visitors. Rows are written by the public.track_visit DB function, called from the browser. */

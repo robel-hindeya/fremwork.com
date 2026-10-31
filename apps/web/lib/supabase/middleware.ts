@@ -38,5 +38,12 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // City and region from Vercel's IP lookup, for Admin › Visitors (country is taken server-side).
+  const geo = ['country', 'country-region', 'city'].map((k) => request.headers.get(`x-vercel-ip-${k}`) || '');
+  if (geo.some(Boolean)) {
+    response.cookies.set('fw_geo', geo.map((g) => { try { return decodeURIComponent(g); } catch { return g; } }).join('|'),
+      { path: '/', sameSite: 'lax', maxAge: 3600 });
+  }
+
   return response;
 }

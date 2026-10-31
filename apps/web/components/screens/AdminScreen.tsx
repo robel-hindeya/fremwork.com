@@ -18,7 +18,7 @@ interface Reg { id: number; eventId: string; name: string; email: string; compan
 interface Settings { acceptSignups: boolean; welcomeEmail: boolean; askCompany: boolean; alertInstant: boolean; alertDigest: boolean; notifyEmail: string; requiredFields: Record<string, boolean> }
 interface Overview { weeks: number[]; activity: { kind: string; text: string; at: string }[] }
 interface TeamMember { name: string; email: string; role: string }
-interface Visitor { id: number; email: string | null; ip: string | null; userAgent: string | null; referrer: string | null; firstPath: string | null; lastPath: string | null; visits: number; firstSeen: string; lastSeen: string }
+interface Visitor { id: number; email: string | null; ip: string | null; userAgent: string | null; referrer: string | null; firstPath: string | null; lastPath: string | null; visits: number; firstSeen: string; lastSeen: string; country: string | null; region: string | null; city: string | null; source: string | null }
 
 /** "Chrome · Windows" and "Desktop" from a user agent string. */
 function device(ua: string | null) {
@@ -29,6 +29,28 @@ function device(ua: string | null) {
     : /Mac OS X|Macintosh/.test(u) ? 'macOS' : /CrOS/.test(u) ? 'ChromeOS' : /Linux/.test(u) ? 'Linux' : 'Other';
   const kind = /iPad|Tablet/.test(u) ? 'Tablet' : /Mobi|iPhone|Android/.test(u) ? 'Phone' : 'Desktop';
   return { browser, os, kind };
+}
+/** "🇪🇹 Ethiopia" from "ET". */
+function countryName(code: string | null) {
+  if (!code || !/^[A-Z]{2}$/.test(code)) return 'Unknown';
+  const flag = String.fromCodePoint(...[...code].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+  let name = code;
+  try { name = new Intl.DisplayNames(['en'], { type: 'region' }).of(code) || code; } catch { /* old browser */ }
+  return `${flag} ${name}`;
+}
+/** How someone found the site: "Google search", "LinkedIn", "Direct" … */
+function sourceOf(referrer: string | null, utm: string | null) {
+  const h = host(referrer);
+  const known: [RegExp, string][] = [
+    [/(^|\.)google\./, 'Google search'], [/(^|\.)bing\.com$/, 'Bing search'], [/duckduckgo\.com$/, 'DuckDuckGo search'],
+    [/(^|\.)yahoo\./, 'Yahoo search'], [/yandex\./, 'Yandex search'], [/(^|\.)baidu\.com$/, 'Baidu search'],
+    [/linkedin\.com$|lnkd\.in$/, 'LinkedIn'], [/(^|\.)(t\.me|telegram\.org)$/, 'Telegram'], [/(^|\.)(x|twitter)\.com$|^t\.co$/, 'X'],
+    [/instagram\.com$/, 'Instagram'], [/facebook\.com$|fb\.com$/, 'Facebook'], [/youtube\.com$/, 'YouTube'],
+    [/(chatgpt\.com|openai\.com|claude\.ai|perplexity\.ai)$/, 'AI assistant'],
+  ];
+  if (h) return known.find(([re]) => re.test(h))?.[1] || h;
+  if (utm) return utm.charAt(0).toUpperCase() + utm.slice(1);
+  return 'Direct';
 }
 const host = (url: string | null) => { try { return url ? new URL(url).hostname.replace(/^www\./, '') : ''; } catch { return ''; } };
 
@@ -146,7 +168,14 @@ export function AdminScreen() {
     if (s.regEv !== 'all' && r.eventId !== s.regEv) return false;
     return !q || `${r.name} ${r.email} ${r.company ?? ''}`.toLowerCase().includes(q);
   });
-  const vq = s.visitors.filter((r) => !q || `${r.email ?? ''} ${r.ip ?? ''} ${r.userAgent ?? ''} ${r.referrer ?? ''} ${r.lastPath ?? ''}`.toLowerCase().includes(q));
+  const vq = s.visitors.filter((r) => !q || `${r.email ?? ''} ${r.ip ?? ''} ${r.userAgent ?? ''} ${r.referrer ?? ''} ${r.lastPath ?? ''} ${countryName(r.country)} ${r.city ?? ''} ${sourceOf(r.referrer, r.source)}`.toLowerCase().includes(q));
+  const tally = (keys: string[]) => {
+    const m: Record<string, number> = {};
+    keys.forEach((k) => { m[k] = (m[k] || 0) + 1; });
+    const rows = Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const top = Math.max(1, ...rows.map((r) => r[1]));
+    return rows.map(([label, n]) => ({ label, n, w: Math.round((n / top) * 100) + '%' }));
+  };
   const dayAgo = Date.now() - 864e5, weekAgo = Date.now() - 7 * 864e5;
   const selIds = Object.keys(s.sel).filter((k) => s.sel[+k]).map(Number);
 
@@ -207,7 +236,7 @@ export function AdminScreen() {
     title: HEAD[tab][0], subtitle: HEAD[tab][1],
     isOverview: tab === 'overview', isWaitlist: tab === 'waitlist', isEvents: tab === 'events', isRegs: tab === 'regs', isVisitors: tab === 'visitors', isSettings: tab === 'settings',
     showSearch: tab === 'waitlist' || tab === 'regs' || tab === 'visitors',
-    searchPh: tab === 'regs' ? 'Search attendees' : tab === 'visitors' ? 'Search email, IP, page' : 'Search name, email, company',
+    searchPh: tab === 'regs' ? 'Search attendees' : tab === 'visitors' ? 'Search email, IP, country' : 'Search name, email, company',
     q: s.q, onQ: (e: ChangeEvent<HTMLInputElement>) => set({ q: e.target.value }),
     showExport: tab === 'overview' || tab === 'waitlist' || tab === 'regs',
     showNewEvent: tab === 'events', showSave: tab === 'settings',
@@ -384,16 +413,19 @@ export function AdminScreen() {
       { label: 'Active today', value: dash(s.visitors.filter((r) => +new Date(r.lastSeen) > dayAgo).length), note: 'Last 24 hours', dot: '#F5A524' },
       { label: 'New this week', value: dash(s.visitors.filter((r) => +new Date(r.firstSeen) > weekAgo).length), note: 'First visit in the last 7 days', dot: '#1FA971' },
     ],
+    vCountries: tally(vq.map((r) => countryName(r.country))),
+    vSources: tally(vq.map((r) => sourceOf(r.referrer, r.source))),
     vSummary: `${vq.length} shown · ${vq.reduce((t, r) => t + r.visits, 0)} visits`,
     vEmpty: !s.loading && vq.length === 0,
     vRows: vq.map((r) => {
       const d = device(r.userAgent);
-      const from = host(r.referrer);
+      const from = sourceOf(r.referrer, r.source);
       return {
         who: r.email || 'Anonymous visitor', ip: r.ip || 'IP unknown', ini: r.email ? initials(r.email.split('@')[0]) : '?',
         avaBg: r.email ? AVA[r.id % AVA.length] : '#EDEDED',
         browser: `${d.browser} · ${d.os}`, kind: d.kind,
-        from: from || 'Direct', page: r.firstPath || '/',
+        from, page: r.firstPath || '/',
+        country: countryName(r.country), place: [r.city, r.region && !/^\d+$/.test(r.region) ? r.region : null].filter(Boolean).join(', ') || '—',
         visits: r.visits, visitsLabel: r.visits === 1 ? "1 visit" : `${r.visits} visits`, seen: timeAgo(r.lastSeen), first: formatShortDate(r.firstSeen),
       };
     }),
@@ -687,15 +719,31 @@ export function AdminScreen() {
       </div>
       </Fragment>))}
       </div>
+      <div className="two" style={{ marginBottom: "14px" }}>
+      {[{ id: 'vc1', title: 'Top countries', rows: v.vCountries }, { id: 'vc2', title: 'How they found you', rows: v.vSources }].map((b: any) => (<Fragment key={b.id}>
+      <section className="card" style={{ padding: "20px" }} aria-labelledby={b.id}>
+      <h2 id={b.id} style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: "600" }}>{b.title}</h2>
+      <div style={{ display: "flex", flexDirection: "column", gap: "13px" }}>
+      {b.rows.map((r: any, r_i: number) => (<Fragment key={r_i}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,150px) minmax(0,1fr) 32px", gap: "12px", alignItems: "center", fontSize: "13px" }}>
+      <span className="ell">{r.label}</span><div className="hb"><i style={{ width: r.w }}></i></div><span style={{ textAlign: "right", fontFamily: "'Geist Mono', monospace" }}>{r.n}</span>
+      </div>
+      </Fragment>))}
+      {b.rows.length ? null : (<span style={{ fontSize: "13px", color: "#5E5E5E" }}>No visitors yet.</span>)}
+      </div>
+      </section>
+      </Fragment>))}
+      </div>
       <div style={{ fontSize: "13px", color: "#5E5E5E", marginBottom: "10px" }}>{v.vSummary}</div>
       <div className="card" style={{ overflow: "hidden" }}>
-      <div className="thead vs"><span>VISITOR</span><span className="c-br">BROWSER</span><span className="c-from">CAME FROM</span><span className="c-vis" style={{ textAlign: "right" }}>VISITS</span><span style={{ textAlign: "right" }}>LAST SEEN</span></div>
+      <div className="thead vs"><span>VISITOR</span><span className="c-loc">LOCATION</span><span className="c-br">BROWSER</span><span className="c-from">CAME FROM</span><span className="c-vis" style={{ textAlign: "right" }}>VISITS</span><span style={{ textAlign: "right" }}>LAST SEEN</span></div>
       {(v.vRows || []).map((r: any, r_i: number) => (<Fragment key={r_i}>
       <div className="trow vs">
       <div style={{ display: "flex", alignItems: "center", gap: "11px", minWidth: "0" }}>
       <span className="ava" style={{ background: r.avaBg }}>{r.ini}</span>
-      <div style={{ minWidth: "0" }}><div className="ell" style={{ fontWeight: "500" }}>{r.who}</div><div className="ell" style={{ fontSize: "12px", color: "#5E5E5E", fontFamily: "'Geist Mono', monospace" }}>{r.ip}</div><div className="mmeta ell" style={{ fontSize: "12px", color: "#5E5E5E", marginTop: "2px" }}>{r.browser} · {r.kind} · {r.visitsLabel}</div></div>
+      <div style={{ minWidth: "0" }}><div className="ell" style={{ fontWeight: "500" }}>{r.who}</div><div className="ell" style={{ fontSize: "12px", color: "#5E5E5E", fontFamily: "'Geist Mono', monospace" }}>{r.ip}</div><div className="mmeta ell" style={{ fontSize: "12px", color: "#5E5E5E", marginTop: "2px" }}>{r.country} · {r.from} · {r.visitsLabel}</div></div>
       </div>
+      <div className="c-loc" style={{ minWidth: "0" }}><div className="ell">{r.country}</div><div className="ell" style={{ fontSize: "12px", color: "#5E5E5E" }}>{r.place}</div></div>
       <div className="c-br" style={{ minWidth: "0" }}><div className="ell">{r.browser}</div><div style={{ fontSize: "12px", color: "#5E5E5E" }}>{r.kind}</div></div>
       <div className="c-from" style={{ minWidth: "0" }}><div className="ell">{r.from}</div><div className="ell" style={{ fontSize: "12px", color: "#5E5E5E" }}>Landed on {r.page}</div></div>
       <span className="c-vis" style={{ textAlign: "right", fontFamily: "'Geist Mono', monospace" }}>{r.visits}</span>

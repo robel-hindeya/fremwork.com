@@ -29,8 +29,16 @@ export function VisitTracker() {
     if (!path || path.startsWith('/admin') || navigator.webdriver) return;
     const t = window.setTimeout(() => {
       const referrer = document.referrer && !document.referrer.startsWith(location.origin) ? document.referrer : null;
+      const cookie = document.cookie.match(/(?:^|; )fw_geo=([^;]*)/)?.[1];
+      let geo: string[] = [];
+      try { geo = cookie ? decodeURIComponent(cookie).split('|') : []; } catch { /* bad cookie */ }
+      const q = new URLSearchParams(location.search);
       getSupabaseBrowserClient()
-        .rpc('track_visit', { p_browser_id: browserId(), p_path: path, p_referrer: referrer })
+        .rpc('track_visit', {
+          p_browser_id: browserId(), p_path: path, p_referrer: referrer,
+          p_country: geo[0] || null, p_region: geo[1] || null, p_city: geo[2] || null,
+          p_source: q.get('utm_source') || q.get('ref') || null,
+        })
         .then(() => undefined, () => undefined);
     }, 400);
     return () => clearTimeout(t);
