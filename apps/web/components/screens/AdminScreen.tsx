@@ -88,6 +88,41 @@ const STATUS = {
   Active: { bg: '#1FA97118', color: '#137A50', dot: '#1FA971' },
 };
 const DOT: Record<string, string> = { waitlist: '#C6F432', registration: '#F5A524', invite: '#3D5AFE', event: '#1FA971', active: '#1FA971' };
+const RANGES = [
+  { id: 'day', label: 'Today', note: 'Today, by hour' },
+  { id: '7', label: '7 days', note: 'Last 7 days' },
+  { id: '15', label: '15 days', note: 'Last 15 days' },
+  { id: '30', label: '30 days', note: 'Last 30 days' },
+  { id: '60', label: '60 days', note: 'Last 60 days' },
+] as const;
+type Range = (typeof RANGES)[number]['id'];
+
+/** Sign-ups bucketed by hour (today) or by day (last N days), in the admin's time zone. */
+function signupBuckets(dates: string[], range: Range) {
+  const now = new Date();
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const md = (d: Date) => d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+  if (range === 'day') {
+    const start = startOfDay(now).getTime();
+    const counts = Array(24).fill(0) as number[];
+    dates.forEach((iso) => { const t = new Date(iso).getTime(); if (t >= start) counts[new Date(t).getHours()]++; });
+    return counts.map((n, h) => ({ n, label: String(h).padStart(2, '0'), tip: `${String(h).padStart(2, '0')}:00`, show: h % 6 === 0 }));
+  }
+  const days = Number(range);
+  const first = startOfDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1)));
+  const counts = Array(days).fill(0) as number[];
+  dates.forEach((iso) => {
+    const i = Math.round((startOfDay(new Date(iso)).getTime() - first.getTime()) / 864e5);
+    if (i >= 0 && i < days) counts[i]++;
+  });
+  const every = days <= 7 ? 1 : days <= 15 ? 3 : days <= 30 ? 5 : 10;
+  return counts.map((n, i) => {
+    const d = new Date(first.getFullYear(), first.getMonth(), first.getDate() + i);
+    const label = days <= 7 ? d.toLocaleDateString('en-US', { weekday: 'short' }) : md(d);
+    return { n, label, tip: d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }), show: (days - 1 - i) % every === 0 };
+  });
+}
+
 const sw = (on: boolean) => ({ on: on ? 'true' : 'false', bg: on ? '#0A0A0A' : '#D6D6D2', left: on ? '19px' : '3px' });
 const DEFAULT_SETTINGS: Settings = { acceptSignups: true, welcomeEmail: true, askCompany: true, alertInstant: true, alertDigest: false, notifyEmail: '', requiredFields: { name: true, email: true } };
 
@@ -112,7 +147,7 @@ export function AdminScreen() {
     wl: [] as WlEntry[], events: [] as AdminEvent[], regs: [] as Reg[], overview: { weeks: [], activity: [] } as Overview,
     settings: DEFAULT_SETTINGS, team: [] as TeamMember[], visitors: [] as Visitor[],
     notifyEmail: '', inviteEmail: '', inviteErr: '', dirty: false,
-    drawer: false, ne: {} as Record<string, string>, neErr: '', toast: '',
+    range: '30' as Range, drawer: false, ne: {} as Record<string, string>, neErr: '', toast: '',
   });
   const toastT = useRef(0);
 
@@ -195,7 +230,9 @@ export function AdminScreen() {
     } catch (err) { fail(err); }
   };
 
-  const wmax = Math.max(1, ...s.overview.weeks);
+  const buckets = signupBuckets(s.wl.map((r) => r.createdAt), s.range);
+  const bmax = Math.max(1, ...buckets.map((b) => b.n));
+  const rangeNote = RANGES.find((r) => r.id === s.range)!.note;
   const rc: Record<string, number> = {};
   s.wl.forEach((r) => { if (r.role) rc[r.role] = (rc[r.role] || 0) + 1; });
   const rmax = Math.max(1, ...ROLES.map((r) => rc[r] || 0));
@@ -267,9 +304,16 @@ export function AdminScreen() {
       { label: 'Event registrations', value: dash(totalRegs), note: 'Across ' + s.events.length + ' events', dot: '#F5A524', go: go('regs') },
       { label: 'Published events', value: dash(published), note: s.events.length - published + ' in draft', dot: '#1FA971', go: go('events') },
     ],
-    weeks: s.overview.weeks.map((n, i) => ({ v: n, label: 'W' + (i + 1), h: Math.max(4, Math.round((n / wmax) * 150)) + 'px' })),
-    weekTotal: s.overview.weeks.reduce((a, b) => a + b, 0),
-    weekAria: 'Bar chart of waitlist sign-ups per week: ' + s.overview.weeks.map((n, i) => `week ${i + 1} ${n}`).join(', '),
+    weeks: buckets.map((b) => ({ v: b.n, label: b.label, tip: b.tip, labelVis: b.show ? 'visible' : 'hidden', h: Math.max(4, Math.round((b.n / bmax) * 150)) + 'px' })),
+    weekTotal: buckets.reduce((a, b) => a + b.n, 0),
+    weekNote: rangeNote,
+    barGap: buckets.length > 30 ? '2px' : buckets.length > 15 ? '4px' : '10px',
+    weekAria: `Bar chart of waitlist sign-ups, ${rangeNote.toLowerCase()}: ` + buckets.map((b) => `${b.tip} ${b.n}`).join(', '),
+    ranges: RANGES.map((r) => {
+      const on = r.id === s.range;
+      return { label: r.label, pick: () => set({ range: r.id }), pressed: on ? 'true' : 'false',
+        bg: on ? '#0A0A0A' : '#FFFFFF', color: on ? '#FFFFFF' : '#0A0A0A', border: on ? '#0A0A0A' : '#E2E2DF' };
+    }),
     roleMix: ROLES.map((r) => ({ role: r, n: rc[r] || 0, w: Math.round(((rc[r] || 0) / rmax) * 100) + '%' })).sort((a, b) => b.n - a.n),
     upcoming: s.events.filter((e) => e.published).slice(0, 4).map((e) => ({
       title: e.title, type: e.type.charAt(0) + e.type.slice(1).toLowerCase(), when: formatWhen(e.startsAt, e.whenLabel),
@@ -564,13 +608,18 @@ export function AdminScreen() {
       </div>
       <div className="two">
       <section className="card" style={{ padding: "20px" }} aria-labelledby="ch1">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "10px", marginBottom: "14px" }}>
-      <h2 id="ch1" style={{ margin: "0", fontSize: "16px", fontWeight: "600" }}>Waitlist sign-ups per week</h2>
-      <span style={{ fontSize: "13px", color: "#5E5E5E" }}>Last 8 weeks · {v.weekTotal} total</span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "10px", marginBottom: "12px", flexWrap: "wrap" }}>
+      <h2 id="ch1" style={{ margin: "0", fontSize: "16px", fontWeight: "600" }}>Waitlist sign-ups</h2>
+      <span style={{ fontSize: "13px", color: "#5E5E5E" }}>{v.weekNote} · {v.weekTotal} total</span>
       </div>
-      <div className="bars" role="img" aria-label={v.weekAria}>
+      <div role="group" aria-label="Time range" style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "16px" }}>
+      {(v.ranges || []).map((r: any, r_i: number) => (<Fragment key={r_i}>
+      <button type="button" className="chip" onClick={r.pick} aria-pressed={r.pressed} style={{ background: r.bg, color: r.color, border: `1px solid ${r.border}`, fontSize: "12px", padding: "5px 11px" }}>{r.label}</button>
+      </Fragment>))}
+      </div>
+      <div className="bars" role="img" aria-label={v.weekAria} style={{ gap: v.barGap }}>
       {(v.weeks || []).map((w: any, w_i: number) => (<Fragment key={w_i}>
-      <div className="bcol"><span className="tip">{w.label}: {w.v} sign-ups</span><div className="bar" style={{ height: w.h }}></div><span style={{ fontFamily: "'Geist Mono', monospace", fontSize: "11px", color: "#5E5E5E" }}>{w.label}</span></div>
+      <div className="bcol" style={{ minWidth: "0" }}><span className="tip">{w.tip}: {w.v} sign-up{w.v === 1 ? "" : "s"}</span><div className="bar" style={{ height: w.h }}></div><span style={{ fontFamily: "'Geist Mono', monospace", fontSize: "11px", color: "#5E5E5E", visibility: w.labelVis, whiteSpace: "nowrap" }}>{w.label}</span></div>
       </Fragment>))}
       </div>
       </section>
